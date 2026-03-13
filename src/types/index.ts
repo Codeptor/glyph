@@ -1,12 +1,12 @@
 export type ArtStyle = 'classic' | 'braille' | 'halftone' | 'dotcross' | 'line' | 'particles' | 'claude-code' | 'retro' | 'terminal'
 
-export type DitherAlgorithm = 'none' | 'floyd-steinberg' | 'bayer' | 'atkinson'
+export type DitherAlgorithm = 'none' | 'floyd-steinberg' | 'bayer' | 'atkinson' | 'jarvis-judice-ninke' | 'stucki' | 'sierra' | 'sierra-lite'
 
 export type CharacterSet = 'standard' | 'blocks' | 'detailed' | 'minimal' | 'binary' | 'custom' | 'letters-upper' | 'letters-lower' | 'letters-mixed' | 'letters-symbols'
 
 export type FontFamily = 'Helvetica Neue' | 'Inter' | 'Poppins' | 'Space Grotesk' | 'VT323'
 
-export type ColorMode = 'grayscale' | 'fullcolor' | 'matrix' | 'amber' | 'custom'
+export type ColorMode = 'grayscale' | 'fullcolor' | 'matrix' | 'amber' | 'sepia' | 'cool-blue' | 'neon' | 'custom'
 
 export type FXPreset = 'none' | 'noise' | 'intervals' | 'beam' | 'glitch' | 'crt' | 'matrix-rain'
 

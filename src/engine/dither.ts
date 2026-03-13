@@ -1,14 +1,16 @@
 import type { DitherAlgorithm } from '@/types'
 
-export function noDither(pixels: Float32Array): Float32Array {
-  return pixels
+interface DiffusionKernel {
+  offsets: Array<[number, number, number]> // [dx, dy, weight]
+  divisor: number
 }
 
-export function floydSteinberg(
+function errorDiffusion(
   pixels: Float32Array,
   w: number,
   h: number,
   strength: number,
+  kernel: DiffusionKernel,
 ): Float32Array {
   const out = new Float32Array(pixels)
   for (let y = 0; y < h; y++) {
@@ -16,26 +18,75 @@ export function floydSteinberg(
       const i = y * w + x
       const old = out[i]
       const quantized = old > 0.5 ? 1 : 0
-      const err = (old - quantized) * strength
-
+      const err = (old - quantized) * strength / kernel.divisor
       out[i] = quantized
-
-      if (x + 1 < w) out[i + 1] += err * (7 / 16)
-      if (y + 1 < h) {
-        if (x - 1 >= 0) out[(y + 1) * w + (x - 1)] += err * (3 / 16)
-        out[(y + 1) * w + x] += err * (5 / 16)
-        if (x + 1 < w) out[(y + 1) * w + (x + 1)] += err * (1 / 16)
+      for (const [dx, dy, weight] of kernel.offsets) {
+        const nx = x + dx
+        const ny = y + dy
+        if (nx >= 0 && nx < w && ny >= 0 && ny < h) {
+          out[ny * w + nx] += err * weight
+        }
       }
     }
   }
   return out
 }
 
-const BAYER_4X4 = [
-  [0, 8, 2, 10],
-  [12, 4, 14, 6],
-  [3, 11, 1, 9],
-  [15, 7, 13, 5],
+const FLOYD_STEINBERG: DiffusionKernel = {
+  offsets: [[1,0,7], [-1,1,3], [0,1,5], [1,1,1]],
+  divisor: 16,
+}
+
+const JARVIS_JUDICE_NINKE: DiffusionKernel = {
+  offsets: [
+    [1,0,7], [2,0,5],
+    [-2,1,3], [-1,1,5], [0,1,7], [1,1,5], [2,1,3],
+    [-2,2,1], [-1,2,3], [0,2,5], [1,2,3], [2,2,1],
+  ],
+  divisor: 48,
+}
+
+const STUCKI: DiffusionKernel = {
+  offsets: [
+    [1,0,8], [2,0,4],
+    [-2,1,2], [-1,1,4], [0,1,8], [1,1,4], [2,1,2],
+    [-2,2,1], [-1,2,2], [0,2,4], [1,2,2], [2,2,1],
+  ],
+  divisor: 42,
+}
+
+const ATKINSON: DiffusionKernel = {
+  offsets: [[1,0,1], [2,0,1], [-1,1,1], [0,1,1], [1,1,1], [0,2,1]],
+  divisor: 8,
+}
+
+const SIERRA: DiffusionKernel = {
+  offsets: [
+    [1,0,5], [2,0,3],
+    [-2,1,2], [-1,1,4], [0,1,5], [1,1,4], [2,1,2],
+    [-1,2,2], [0,2,3], [1,2,2],
+  ],
+  divisor: 32,
+}
+
+const SIERRA_LITE: DiffusionKernel = {
+  offsets: [[1,0,2], [0,1,1], [-1,1,1]],
+  divisor: 4,
+}
+
+export function noDither(pixels: Float32Array): Float32Array {
+  return pixels
+}
+
+const BAYER_8X8 = [
+  [ 0, 32,  8, 40,  2, 34, 10, 42],
+  [48, 16, 56, 24, 50, 18, 58, 26],
+  [12, 44,  4, 36, 14, 46,  6, 38],
+  [60, 28, 52, 20, 62, 30, 54, 22],
+  [ 3, 35, 11, 43,  1, 33,  9, 41],
+  [51, 19, 59, 27, 49, 17, 57, 25],
+  [15, 47,  7, 39, 13, 45,  5, 37],
+  [63, 31, 55, 23, 61, 29, 53, 21],
 ]
 
 export function bayerDither(
@@ -48,39 +99,8 @@ export function bayerDither(
   for (let y = 0; y < h; y++) {
     for (let x = 0; x < w; x++) {
       const i = y * w + x
-      const threshold = (BAYER_4X4[y % 4][x % 4] / 16 - 0.5) * strength
+      const threshold = (BAYER_8X8[y % 8][x % 8] / 64 - 0.5) * strength
       out[i] = Math.max(0, Math.min(1, pixels[i] + threshold))
-    }
-  }
-  return out
-}
-
-export function atkinsonDither(
-  pixels: Float32Array,
-  w: number,
-  h: number,
-  strength: number,
-): Float32Array {
-  const out = new Float32Array(pixels)
-  for (let y = 0; y < h; y++) {
-    for (let x = 0; x < w; x++) {
-      const i = y * w + x
-      const old = out[i]
-      const quantized = old > 0.5 ? 1 : 0
-      const err = ((old - quantized) * strength) / 8
-
-      out[i] = quantized
-
-      if (x + 1 < w) out[i + 1] += err
-      if (x + 2 < w) out[i + 2] += err
-      if (y + 1 < h) {
-        if (x - 1 >= 0) out[(y + 1) * w + (x - 1)] += err
-        out[(y + 1) * w + x] += err
-        if (x + 1 < w) out[(y + 1) * w + (x + 1)] += err
-      }
-      if (y + 2 < h) {
-        out[(y + 2) * w + x] += err
-      }
     }
   }
   return out
@@ -94,8 +114,12 @@ type DitherFn = (
 ) => Float32Array
 
 export const DITHER_FUNCTIONS: Record<DitherAlgorithm, DitherFn> = {
-  none: (pixels) => noDither(pixels),
-  'floyd-steinberg': floydSteinberg,
-  bayer: bayerDither,
-  atkinson: atkinsonDither,
+  'none': noDither,
+  'floyd-steinberg': (p, w, h, s) => errorDiffusion(p, w, h, s, FLOYD_STEINBERG),
+  'bayer': bayerDither,
+  'atkinson': (p, w, h, s) => errorDiffusion(p, w, h, s, ATKINSON),
+  'jarvis-judice-ninke': (p, w, h, s) => errorDiffusion(p, w, h, s, JARVIS_JUDICE_NINKE),
+  'stucki': (p, w, h, s) => errorDiffusion(p, w, h, s, STUCKI),
+  'sierra': (p, w, h, s) => errorDiffusion(p, w, h, s, SIERRA),
+  'sierra-lite': (p, w, h, s) => errorDiffusion(p, w, h, s, SIERRA_LITE),
 }
