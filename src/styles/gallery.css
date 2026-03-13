@@ -1,10 +1,15 @@
 .left-gallery-view {
-  width: 100%;
-  height: 100%;
-  padding: 1.2rem;
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  padding: 3rem 1.2rem 1.2rem;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
+  background-color: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  overflow-y: auto;
 }
 
 .gallery-browser {

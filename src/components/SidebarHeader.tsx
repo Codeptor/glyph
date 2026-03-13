@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom'
 import { useStore } from '@/store/useStore'
 
 export function SidebarHeader() {
@@ -20,6 +21,12 @@ export function SidebarHeader() {
         <button className="header-legal-link" onClick={handleExportPreset}>
           Export
         </button>
+        <Link to="/terms" className="header-legal-link">
+          Terms
+        </Link>
+        <Link to="/privacy" className="header-legal-link">
+          Privacy
+        </Link>
         <span className="changelog-link">v1.0</span>
       </div>
     </div>

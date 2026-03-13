@@ -5,6 +5,8 @@ import { LeftModeButtons } from './LeftModeButtons'
 import { LeftBottomBar } from './LeftBottomBar'
 import { ExportPopover } from './ExportPopover'
 import { SavePopover } from './SavePopover'
+import { GalleryView } from './GalleryView'
+import { TemplatesView } from './TemplatesView'
 
 export function AsciiCanvas() {
   const containerRef = useRef<HTMLDivElement>(null)
@@ -22,6 +24,7 @@ export function AsciiCanvas() {
   const sidebarHidden = useStore((s) => s.sidebarHidden)
   const setSidebarHidden = useStore((s) => s.setSidebarHidden)
   const addGalleryAsset = useStore((s) => s.addGalleryAsset)
+  const leftPanel = useStore((s) => s.leftPanel)
 
   useEffect(() => {
     const renderer = new AsciiRenderer()
@@ -204,6 +207,8 @@ export function AsciiCanvas() {
       </div>
       {showExport && <ExportPopover onClose={() => setShowExport(false)} />}
       {showPresets && <SavePopover onClose={() => setShowPresets(false)} />}
+      {leftPanel === 'library' && <GalleryView />}
+      {leftPanel === 'templates' && <TemplatesView />}
     </div>
   )
 }

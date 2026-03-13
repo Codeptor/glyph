@@ -3,6 +3,7 @@ import { AsciiCanvas } from '@/components/AsciiCanvas'
 import { Sidebar } from '@/components/Sidebar'
 import { ToastProvider } from '@/components/Toast'
 import { DragOverlay } from '@/components/DragOverlay'
+import { DBInit } from '@/components/DBInit'
 import '@/styles/variables.css'
 import '@/styles/shell.css'
 import '@/styles/canvas.css'
@@ -22,6 +23,7 @@ function App() {
 
   return (
     <ToastProvider>
+      <DBInit />
       <div
         className={`a7-shell${sidebarHidden ? ' is-right-sidebar-hidden' : ''}`}
         data-theme={themeMode}

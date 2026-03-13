@@ -23,6 +23,14 @@ import type {
   TerminalCharset,
   LetterSet,
 } from '@/types'
+import {
+  loadGallery,
+  saveGalleryItem,
+  deleteGalleryItem,
+  loadPresets,
+  savePresetItem,
+  deletePresetItem,
+} from '@/lib/db'
 
 function uid(): string {
   return crypto.randomUUID()
@@ -159,6 +167,8 @@ interface AppState {
   savePreset: (name: string) => void
   loadPreset: (id: string) => void
   deletePreset: (id: string) => void
+
+  initFromDB: () => Promise<void>
 }
 
 export const useStore = create<AppState>((set, get) => ({
@@ -222,13 +232,17 @@ export const useStore = create<AppState>((set, get) => ({
   setThemeMode: (mode) => set({ themeMode: mode }),
   setSidebarHidden: (hidden) => set({ sidebarHidden: hidden }),
 
-  addGalleryAsset: (asset) =>
-    set((state) => ({ galleryAssets: [...state.galleryAssets, asset] })),
+  addGalleryAsset: (asset) => {
+    set((state) => ({ galleryAssets: [...state.galleryAssets, asset] }))
+    saveGalleryItem(asset)
+  },
 
-  removeGalleryAsset: (id) =>
+  removeGalleryAsset: (id) => {
     set((state) => ({
       galleryAssets: state.galleryAssets.filter((a) => a.id !== id),
-    })),
+    }))
+    deleteGalleryItem(id)
+  },
 
   setTemplateAssets: (assets) => set({ templateAssets: assets }),
 
@@ -296,6 +310,7 @@ export const useStore = create<AppState>((set, get) => ({
         createdAt: new Date().toISOString(),
       }
       set((state) => ({ presets: [...state.presets, preset] }))
+      savePresetItem(preset)
       if (preset.layer) {
         get().updateActiveLayer(preset.layer)
       }
@@ -342,6 +357,7 @@ export const useStore = create<AppState>((set, get) => ({
       createdAt: new Date().toISOString(),
     }
     set((state) => ({ presets: [...state.presets, preset] }))
+    savePresetItem(preset)
   },
 
   loadPreset: (id) => {
@@ -360,8 +376,15 @@ export const useStore = create<AppState>((set, get) => ({
     }
   },
 
-  deletePreset: (id) =>
+  deletePreset: (id) => {
     set((state) => ({
       presets: state.presets.filter((p) => p.id !== id),
-    })),
+    }))
+    deletePresetItem(id)
+  },
+
+  initFromDB: async () => {
+    const [gallery, presets] = await Promise.all([loadGallery(), loadPresets()])
+    set({ galleryAssets: gallery, presets })
+  },
 }))
