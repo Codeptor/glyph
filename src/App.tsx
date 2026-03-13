@@ -9,9 +9,10 @@ import { MobileDisclaimer } from '@/components/MobileDisclaimer'
 import { ExportPopover } from '@/components/ExportPopover'
 import { KeyboardHelp } from '@/components/KeyboardHelp'
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts'
+import { useThemeEffect } from '@/hooks/useThemeEffect'
 
 function App() {
-  const themeMode = useStore((s) => s.themeMode)
+  useThemeEffect()
   const sidebarHidden = useStore((s) => s.sidebarHidden)
   const [showExport, setShowExport] = useState(false)
   const [showShortcuts, setShowShortcuts] = useState(false)
@@ -24,9 +25,7 @@ function App() {
   return (
     <ToastProvider>
       <DBInit />
-      <main
-        className={`flex h-full w-full ${themeMode === 'light' ? 'light' : ''}`}
-      >
+      <main className="flex h-full w-full">
         <AsciiCanvas />
         {!sidebarHidden && <Sidebar />}
       </main>

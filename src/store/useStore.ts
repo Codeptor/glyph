@@ -31,6 +31,7 @@ import {
   savePresetItem,
   deletePresetItem,
 } from '@/lib/db'
+import { loadPersistedTheme } from '@/hooks/useThemeEffect'
 
 function uid(): string {
   return crypto.randomUUID()
@@ -195,7 +196,7 @@ export const useStore = create<AppState>((set, get) => ({
   fps: 30,
 
   leftPanel: null,
-  themeMode: 'dark',
+  themeMode: loadPersistedTheme(),
   sidebarHidden: false,
 
   galleryAssets: [],

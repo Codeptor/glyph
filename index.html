@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en" data-theme="dark">
+<html lang="en" class="dark">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -54,6 +54,12 @@
     </script>
   </head>
   <body>
+    <script>
+      (function(){var t=localStorage.getItem('glyph-theme')||'system';
+      var r=t==='system'?window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light':t;
+      document.documentElement.className=r;
+      document.querySelector('meta[name=theme-color]').content=r==='dark'?'#000000':'#f5f5f5'})()
+    </script>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

@@ -22,7 +22,7 @@ export type SourceQuality = 320 | 480 | 720
 
 export type LeftPanel = 'library' | 'templates' | 'creations' | null
 
-export type ThemeMode = 'dark' | 'light'
+export type ThemeMode = 'dark' | 'light' | 'system'
 
 export type HalftoneShape = 'circle' | 'square' | 'diamond' | 'pentagon' | 'hexagon'
 
