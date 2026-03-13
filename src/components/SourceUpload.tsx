@@ -15,15 +15,27 @@ export function SourceUpload() {
   const fileRef = useRef<HTMLInputElement>(null)
 
   const handleFile = useCallback((file: File) => {
-    if (!file.type.startsWith('image/')) return
-    const reader = new FileReader()
-    reader.onload = (e) => {
-      const result = e.target?.result
-      if (typeof result === 'string') {
-        setSourceImage(result)
+    if (file.type.startsWith('image/')) {
+      const reader = new FileReader()
+      reader.onload = (e) => {
+        const result = e.target?.result
+        if (typeof result === 'string') {
+          setSourceImage(result)
+        }
+      }
+      reader.readAsDataURL(file)
+    } else if (file.type.startsWith('video/')) {
+      const url = URL.createObjectURL(file)
+      const video = document.createElement('video')
+      video.src = url
+      video.loop = true
+      video.muted = true
+      video.playsInline = true
+      video.onloadeddata = () => {
+        video.play()
+        window.dispatchEvent(new CustomEvent('camera-ready', { detail: video }))
       }
     }
-    reader.readAsDataURL(file)
   }, [setSourceImage])
 
   const handleDrop = useCallback((e: React.DragEvent) => {
@@ -57,25 +69,29 @@ export function SourceUpload() {
 
   return (
     <div className="upload-widget">
+      <div className="control-label" style={{ padding: '0 1.2rem', marginBottom: '0.3rem' }}>Source</div>
       <div className="upload-controls-row">
-        {(['image', 'camera'] as SourceMode[]).map((mode) => (
+        {([['image', 'Image / Video'], ['camera', 'Live Cam']] as [SourceMode, string][]).map(([mode, label]) => (
           <button
             key={mode}
             className={`source-mode-button${sourceMode === mode ? ' is-active' : ''}`}
             onClick={() => setSourceMode(mode)}
           >
-            {mode}
+            {label}
           </button>
         ))}
-        <select
-          className="source-resolution-inline"
-          value={sourceQuality}
-          onChange={(e) => setSourceQuality(Number(e.target.value) as SourceQuality)}
-        >
-          {QUALITIES.map((q) => (
-            <option key={q} value={q}>{q}p</option>
-          ))}
-        </select>
+        <div className="source-quality-wrap">
+          <span className="control-label">Quality</span>
+          <select
+            className="source-resolution-inline"
+            value={sourceQuality}
+            onChange={(e) => setSourceQuality(Number(e.target.value) as SourceQuality)}
+          >
+            {QUALITIES.map((q) => (
+              <option key={q} value={q}>{q}</option>
+            ))}
+          </select>
+        </div>
       </div>
 
       {sourceMode === 'image' && (
@@ -86,11 +102,12 @@ export function SourceUpload() {
           onDragLeave={handleDragLeave}
           onClick={() => fileRef.current?.click()}
         >
-          <div className="upload-hint">Drop image or click to upload</div>
+          <div className="upload-hint">Drop image/video or click to browse</div>
+          <div className="upload-hint-sub">Supports: JPG, PNG, GIF, MP4, WebM</div>
           <input
             ref={fileRef}
             type="file"
-            accept="image/*"
+            accept="image/*,video/*"
             style={{ display: 'none' }}
             onChange={handleInputChange}
           />

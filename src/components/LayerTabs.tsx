@@ -10,7 +10,7 @@ export function LayerTabs() {
   return (
     <div className="control-row">
       <div className="control-row-head">
-        <div className="control-label">Layers</div>
+        <div className="control-label">Layer</div>
         {layers.length > 1 && (
           <button
             className="header-legal-link"
@@ -30,7 +30,7 @@ export function LayerTabs() {
             {layer.name}
           </button>
         ))}
-        <button className="layer-add-button" onClick={addLayer}>+</button>
+        <button className="layer-add-button" onClick={addLayer}>ADD LAYER</button>
       </div>
     </div>
   )

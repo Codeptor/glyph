@@ -1,10 +1,16 @@
+import { useState } from 'react'
 import { SidebarHeader } from './SidebarHeader'
 import { SourceUpload } from './SourceUpload'
 import { LayerTabs } from './LayerTabs'
 import { ControlsPanel } from './ControlsPanel'
-import { PresetsPanel } from './PresetsPanel'
+import { FooterBar } from './FooterBar'
+import { ExportPopover } from './ExportPopover'
+import { SavePopover } from './SavePopover'
 
 export function Sidebar() {
+  const [showExport, setShowExport] = useState(false)
+  const [showPresets, setShowPresets] = useState(false)
+
   return (
     <div className="ui-layer">
       <div style={{ overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: 0 }}>
@@ -14,8 +20,13 @@ export function Sidebar() {
           <LayerTabs />
         </div>
         <ControlsPanel />
-        <PresetsPanel />
       </div>
+      <FooterBar
+        onExport={() => setShowExport(!showExport)}
+        onPresets={() => setShowPresets(!showPresets)}
+      />
+      {showExport && <ExportPopover onClose={() => setShowExport(false)} />}
+      {showPresets && <SavePopover onClose={() => setShowPresets(false)} />}
     </div>
   )
 }

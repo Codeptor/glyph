@@ -102,6 +102,20 @@
   letter-spacing: 0.1em;
 }
 
+.upload-hint-sub {
+  font-size: 0.58rem;
+  font-family: var(--font-mono);
+  color: var(--fg);
+  opacity: 0.4;
+}
+
+.source-quality-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-left: auto;
+}
+
 .processing-indicator {
   font-size: 0.68rem;
   font-family: var(--font-display);

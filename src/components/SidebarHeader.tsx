@@ -12,22 +12,21 @@ export function SidebarHeader() {
   return (
     <div className="hero-edition">
       <div className="hero-title-group">
-        <div className="ascii-mark">ASC11</div>
+        <div className="ascii-mark">ASCII</div>
         <div className="hero-description">
-          Convert images and video into stylized ASCII art with real-time effects and customization.
+          ASCII editor for art, video, live cam, and canvas exports
         </div>
       </div>
       <div className="header-action-row">
-        <button className="header-legal-link" onClick={handleExportPreset}>
-          Export
-        </button>
         <Link to="/terms" className="header-legal-link">
-          Terms
+          TERMS
         </Link>
         <Link to="/privacy" className="header-legal-link">
-          Privacy
+          PRIVACY
         </Link>
-        <span className="changelog-link">v1.0</span>
+        <button className="header-legal-link" onClick={handleExportPreset}>
+          CHANGELOG
+        </button>
       </div>
     </div>
   )
