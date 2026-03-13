@@ -1,17 +1,15 @@
 import type { RenderContext } from './types.ts'
+import { getCharset, getCharForBrightness } from '@/engine/charsets.ts'
+import { getClaudeColor, getVignetteFactor, getMouseOffset } from '@/engine/renderUtils.ts'
 
-const CODE_CHARS = '{}<>/\\|=-+[]();:_~'
-
-function cellRandom(x: number, y: number): number {
-  const n = Math.sin(x * 12.9898 + y * 78.233) * 43758.5453
-  return n - Math.floor(n)
+function clamp(v: number, min: number, max: number): number {
+  return Math.max(min, Math.min(max, v))
 }
 
 export function renderClaude(rc: RenderContext): void {
-  const { ctx, brightnessGrid, colorGrid, cols, rows, layer, cellWidth, cellHeight } = rc
+  const { ctx, brightnessGrid, cols, rows, layer, cellWidth, cellHeight, mouseX, mouseY } = rc
+  const chars = getCharset('blocks', layer.customCharset)
 
-  ctx.save()
-  ctx.globalAlpha = layer.opacity
   ctx.font = `${layer.fontSize}px "${layer.font}"`
   ctx.textBaseline = 'top'
   ctx.textAlign = 'left'
@@ -19,39 +17,26 @@ export function renderClaude(rc: RenderContext): void {
   for (let y = 0; y < rows; y++) {
     for (let x = 0; x < cols; x++) {
       const i = y * cols + x
-      const b = brightnessGrid[i]
-      if (b < 0.05) continue
+      let b = brightnessGrid[i]
 
-      // skip based on density
-      if (cellRandom(x, y) > layer.claudeDensity) continue
+      const vFactor = getVignetteFactor(x, y, cols, rows, layer.vignette)
+      ctx.globalAlpha = layer.opacity * vFactor
+      if (ctx.globalAlpha <= 0.002) continue
 
-      const charIdx = Math.floor(cellRandom(x + 1, y + 1) * CODE_CHARS.length)
-      const ch = CODE_CHARS[charIdx]
+      if (layer.invertColor) b = 1 - b
+      b = clamp(b, 0, 1)
 
-      const [r, g, bl] = colorGrid[i]
+      const ch = getCharForBrightness(b, chars)
+      if (ch === ' ') continue
 
-      switch (layer.colorMode) {
-        case 'fullcolor':
-          ctx.fillStyle = `rgb(${r},${g},${bl})`
-          break
-        case 'matrix':
-          ctx.fillStyle = `rgba(0,255,65,${b})`
-          break
-        case 'amber':
-          ctx.fillStyle = `rgba(255,176,0,${b})`
-          break
-        case 'custom':
-          ctx.fillStyle = layer.customColor
-          break
-        default: {
-          const v = Math.round(b * 255)
-          ctx.fillStyle = `rgb(${v},${v},${v})`
-        }
-      }
+      ctx.fillStyle = getClaudeColor(b)
 
-      ctx.fillText(ch, x * cellWidth, y * cellHeight)
+      const { ox, oy } = getMouseOffset(
+        x, y, cellWidth, cellHeight, mouseX, mouseY,
+        layer.mouseAreaSize, layer.mouseSpread, layer.hoverStrength, layer.mouseInteraction,
+      )
+      ctx.fillText(ch, x * cellWidth + ox, y * cellHeight + oy)
     }
   }
-
-  ctx.restore()
+  ctx.globalAlpha = 1
 }

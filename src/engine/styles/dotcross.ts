@@ -1,68 +1,62 @@
 import type { RenderContext } from './types.ts'
+import { getLocalEdgeContrast, getColorForMode, getVignetteFactor, getMouseOffset } from '@/engine/renderUtils.ts'
+
+function clamp(v: number, min: number, max: number): number {
+  return Math.max(min, Math.min(max, v))
+}
+
+const DOT_RAMP = '  .\u00b7:oO'
+const CROSS_RAMP = '  \u00b7+xX#'
 
 export function renderDotCross(rc: RenderContext): void {
-  const { ctx, brightnessGrid, colorGrid, cols, rows, layer, cellWidth, cellHeight } = rc
+  const { ctx, brightnessGrid, colorGrid, cols, rows, layer, cellWidth, cellHeight, mouseX, mouseY } = rc
 
-  ctx.save()
-  ctx.globalAlpha = layer.opacity
-
-  const maxR = Math.min(cellWidth, cellHeight) / 2
+  ctx.font = `${layer.fontSize}px "${layer.font}"`
+  ctx.textBaseline = 'top'
+  ctx.textAlign = 'left'
 
   for (let y = 0; y < rows; y++) {
     for (let x = 0; x < cols; x++) {
       const i = y * cols + x
-      const b = brightnessGrid[i]
-      if (b < 0.02) continue
+      let b = brightnessGrid[i]
 
-      const px = x * cellWidth + cellWidth / 2
-      const py = y * cellHeight + cellHeight / 2
-      const [r, g, bl] = colorGrid[i]
+      const vFactor = getVignetteFactor(x, y, cols, rows, layer.vignette)
+      ctx.globalAlpha = layer.opacity * vFactor
+      if (ctx.globalAlpha <= 0.002) continue
 
-      switch (layer.colorMode) {
-        case 'fullcolor':
-          ctx.fillStyle = `rgb(${r},${g},${bl})`
-          ctx.strokeStyle = `rgb(${r},${g},${bl})`
-          break
-        case 'matrix':
-          ctx.fillStyle = `rgba(0,255,65,${b})`
-          ctx.strokeStyle = `rgba(0,255,65,${b})`
-          break
-        case 'amber':
-          ctx.fillStyle = `rgba(255,176,0,${b})`
-          ctx.strokeStyle = `rgba(255,176,0,${b})`
-          break
-        case 'custom':
-          ctx.fillStyle = layer.customColor
-          ctx.strokeStyle = layer.customColor
-          break
-        default: {
-          const v = Math.round(b * 255)
-          ctx.fillStyle = `rgb(${v},${v},${v})`
-          ctx.strokeStyle = `rgb(${v},${v},${v})`
-        }
-      }
+      if (layer.invertColor) b = 1 - b
+      b = clamp(b, 0, 1)
 
-      // dot
-      const dotR = b * maxR * 0.4
-      if (dotR > 0.2) {
-        ctx.beginPath()
-        ctx.arc(px, py, dotR, 0, Math.PI * 2)
-        ctx.fill()
-      }
+      const edgeContrast = getLocalEdgeContrast(brightnessGrid, x, y, cols, rows)
 
-      // cross
-      const crossSize = b * maxR * 0.8
-      if (crossSize > 0.3) {
-        ctx.lineWidth = Math.max(0.5, b * 1.5)
-        ctx.beginPath()
-        ctx.moveTo(px - crossSize, py)
-        ctx.lineTo(px + crossSize, py)
-        ctx.moveTo(px, py - crossSize)
-        ctx.lineTo(px, py + crossSize)
-        ctx.stroke()
-      }
+      const screen =
+        (Math.sin((x * 0.82 + y * 0.33) * 1.55) +
+          Math.cos((x * 0.27 - y * 0.94) * 1.25) + 2) * 0.25
+      const adjusted = clamp(Math.pow(b, 0.9) * 0.82 + screen * 0.18, 0, 1)
+
+      const dotIdx = Math.floor(adjusted * (DOT_RAMP.length - 1))
+      const crossIdx = Math.floor(adjusted * (CROSS_RAMP.length - 1))
+
+      const edgeMix = clamp(edgeContrast * 1.4 + Math.max(0, adjusted - 0.5) * 0.22, 0, 1)
+      const weave =
+        (Math.sin((x + 1) * 1.71 + (y + 1) * 2.37) +
+          Math.cos((x + 1) * 0.83 - (y + 1) * 1.29) + 2) * 0.25
+      const useCross = edgeMix > clamp(0.46 + weave * 0.28, 0, 1)
+
+      const ch = useCross
+        ? CROSS_RAMP[clamp(crossIdx, 0, CROSS_RAMP.length - 1)]
+        : DOT_RAMP[clamp(dotIdx, 0, DOT_RAMP.length - 1)]
+      if (!ch || ch === ' ') continue
+
+      const color = getColorForMode(b, colorGrid[i], layer.colorMode, layer.customColor)
+      ctx.fillStyle = color
+
+      const { ox, oy } = getMouseOffset(
+        x, y, cellWidth, cellHeight, mouseX, mouseY,
+        layer.mouseAreaSize, layer.mouseSpread, layer.hoverStrength, layer.mouseInteraction,
+      )
+      ctx.fillText(ch, x * cellWidth + ox, y * cellHeight + oy)
     }
   }
-
-  ctx.restore()
+  ctx.globalAlpha = 1
 }

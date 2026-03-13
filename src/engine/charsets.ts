@@ -23,11 +23,11 @@ const BRAILLE_VARIANT_MAP: Record<BrailleVariant, string> = {
 }
 
 const TERMINAL_CHARSET_MAP: Record<TerminalCharset, string> = {
-  '101010': '101010',
-  brackets: '[]/\\<>',
-  dollar: '$_+',
-  mixed: '01[]$_+/\\<>',
-  pipes: '{}[]|/\\_+-',
+  '101010': ' 010101',
+  brackets: ' []/\\<>',
+  dollar: ' $_+',
+  mixed: ' 01[]/\\<>$_+|',
+  pipes: ' 01{}[]/\\<>|_+-',
 }
 
 export function getCharset(set: CharacterSet, customCharset: string): string {

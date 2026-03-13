@@ -1,51 +1,16 @@
 import type { RenderContext } from './types.ts'
-import type { RetroDuotone } from '@/types'
 import { getCharset, getCharForBrightness } from '@/engine/charsets.ts'
+import { getRetroColor, getVignetteFactor, getMouseOffset } from '@/engine/renderUtils.ts'
 
-interface DuotoneColors {
-  dark: [number, number, number]
-  light: [number, number, number]
-}
-
-const DUOTONE_MAP: Record<RetroDuotone, DuotoneColors> = {
-  'amber-classic': {
-    dark: [0, 0, 0],
-    light: [255, 176, 0],
-  },
-  'cyan-night': {
-    dark: [10, 10, 46],
-    light: [0, 229, 255],
-  },
-  'violet-haze': {
-    dark: [26, 10, 46],
-    light: [191, 127, 255],
-  },
-  'lime-pulse': {
-    dark: [10, 26, 10],
-    light: [127, 255, 0],
-  },
-  'mono-ice': {
-    dark: [10, 10, 20],
-    light: [200, 230, 255],
-  },
-}
-
-function lerp(a: number, b: number, t: number): number {
-  return a + (b - a) * t
-}
-
-function cellRandom(x: number, y: number, seed: number): number {
-  const n = Math.sin(x * 12.9898 + y * 78.233 + seed * 45.164) * 43758.5453
-  return n - Math.floor(n)
+function clamp(v: number, min: number, max: number): number {
+  return Math.max(min, Math.min(max, v))
 }
 
 export function renderRetro(rc: RenderContext): void {
-  const { ctx, brightnessGrid, cols, rows, layer, cellWidth, cellHeight, time } = rc
+  const { ctx, brightnessGrid, cols, rows, layer, cellWidth, cellHeight, mouseX, mouseY } = rc
   const chars = getCharset(layer.characterSet, layer.customCharset)
-  const duo = DUOTONE_MAP[layer.retroDuotone]
+  const retroNoise = clamp(layer.retroNoise, 0, 1)
 
-  ctx.save()
-  ctx.globalAlpha = layer.opacity
   ctx.font = `${layer.fontSize}px "${layer.font}"`
   ctx.textBaseline = 'top'
   ctx.textAlign = 'left'
@@ -55,23 +20,32 @@ export function renderRetro(rc: RenderContext): void {
       const i = y * cols + x
       let b = brightnessGrid[i]
 
-      // film grain
-      if (layer.retroNoise > 0) {
-        const noise = (cellRandom(x, y, Math.floor(time * 10)) - 0.5) * layer.retroNoise * 0.3
-        b = Math.max(0, Math.min(1, b + noise))
-      }
+      const vFactor = getVignetteFactor(x, y, cols, rows, layer.vignette)
+      ctx.globalAlpha = layer.opacity * vFactor
+      if (ctx.globalAlpha <= 0.002) continue
 
-      const ch = getCharForBrightness(b, chars)
+      if (layer.invertColor) b = 1 - b
+      b = clamp(b, 0, 1)
+
+      // retro character selection with grain and posterization
+      const grain = (Math.sin((x + 1) * 12.9898 + (y + 1) * 78.233) + 1) * 0.5
+      const jitter = (grain - 0.5) * retroNoise * 0.22
+      let adjusted = clamp(Math.pow(b, 0.78) + jitter, 0, 1)
+      const bands = 10 + Math.round(retroNoise * 16)
+      adjusted = Math.round(adjusted * bands) / Math.max(1, bands)
+
+      const ch = getCharForBrightness(adjusted, chars)
       if (ch === ' ') continue
 
-      const r = Math.round(lerp(duo.dark[0], duo.light[0], b))
-      const g = Math.round(lerp(duo.dark[1], duo.light[1], b))
-      const bl = Math.round(lerp(duo.dark[2], duo.light[2], b))
+      const color = getRetroColor(b, x, y, cols, rows, retroNoise, layer.retroDuotone)
+      ctx.fillStyle = color
 
-      ctx.fillStyle = `rgb(${r},${g},${bl})`
-      ctx.fillText(ch, x * cellWidth, y * cellHeight)
+      const { ox, oy } = getMouseOffset(
+        x, y, cellWidth, cellHeight, mouseX, mouseY,
+        layer.mouseAreaSize, layer.mouseSpread, layer.hoverStrength, layer.mouseInteraction,
+      )
+      ctx.fillText(ch, x * cellWidth + ox, y * cellHeight + oy)
     }
   }
-
-  ctx.restore()
+  ctx.globalAlpha = 1
 }

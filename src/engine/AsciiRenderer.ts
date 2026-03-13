@@ -4,6 +4,7 @@ import { DITHER_FUNCTIONS } from './dither.ts'
 import { STYLE_RENDERERS } from './styles/index.ts'
 import type { RenderContext } from './styles/types.ts'
 import { PRE_RENDER_FX, POST_RENDER_FX } from './fx.ts'
+import { drawBgDitherPass, drawInverseDitherPass, drawBorderGlowOverlay } from './renderUtils.ts'
 
 export class AsciiRenderer {
   private canvas: HTMLCanvasElement
@@ -173,6 +174,28 @@ export class AsciiRenderer {
     const ditherFn = DITHER_FUNCTIONS[layer.ditherAlgorithm]
     const dithered = ditherFn(brightnessGrid, cols, rows, layer.ditherStrength)
 
+    // draw bgDither dots (behind characters)
+    if (layer.bgDither > 0) {
+      this.ctx.save()
+      drawBgDitherPass(
+        this.ctx, dithered, colorGrid, cols, rows, cellWidth, cellHeight,
+        layer.bgDither, time, layer.artStyle, layer.colorMode, layer.customColor,
+        layer.retroDuotone, layer.opacity,
+      )
+      this.ctx.restore()
+    }
+
+    // draw inverseDither fills (behind characters)
+    if (layer.inverseDither > 0) {
+      this.ctx.save()
+      const invertedBg = layer.invertColor ? 'rgba(255,255,255,1)' : 'rgba(0,0,0,1)'
+      drawInverseDitherPass(
+        this.ctx, dithered, cols, rows, cellWidth, cellHeight,
+        layer.inverseDither, time, layer.opacity, invertedBg,
+      )
+      this.ctx.restore()
+    }
+
     const rc: RenderContext = {
       ctx: this.ctx,
       brightnessGrid: dithered,
@@ -191,6 +214,16 @@ export class AsciiRenderer {
     if (styleFn) {
       this.ctx.save()
       styleFn(rc)
+      this.ctx.restore()
+    }
+
+    // draw border glow overlay (on top of everything)
+    if (layer.borderGlow > 0.001) {
+      this.ctx.save()
+      drawBorderGlowOverlay(
+        this.ctx, width, height, layer.artStyle, layer.colorMode,
+        layer.customColor, layer.retroDuotone, layer.borderGlow, layer.invertColor,
+      )
       this.ctx.restore()
     }
   }

@@ -1,123 +1,126 @@
 import type { RenderContext } from './types.ts'
+import { getColorForMode, getVignetteFactor, getMouseOffset } from '@/engine/renderUtils.ts'
 
-function drawPentagon(
-  ctx: CanvasRenderingContext2D,
-  cx: number,
-  cy: number,
-  r: number,
-): void {
-  ctx.beginPath()
-  for (let i = 0; i < 5; i++) {
-    const angle = (Math.PI * 2 * i) / 5 - Math.PI / 2
-    const x = cx + r * Math.cos(angle)
-    const y = cy + r * Math.sin(angle)
-    if (i === 0) ctx.moveTo(x, y)
-    else ctx.lineTo(x, y)
-  }
-  ctx.closePath()
-  ctx.fill()
+function clamp(v: number, min: number, max: number): number {
+  return Math.max(min, Math.min(max, v))
 }
 
-function drawHexagon(
+function drawRegularPolygon(
   ctx: CanvasRenderingContext2D,
   cx: number,
   cy: number,
-  r: number,
+  radius: number,
+  sides: number,
+  baseRotation: number,
 ): void {
-  ctx.beginPath()
-  for (let i = 0; i < 6; i++) {
-    const angle = (Math.PI * 2 * i) / 6 - Math.PI / 6
-    const x = cx + r * Math.cos(angle)
-    const y = cy + r * Math.sin(angle)
-    if (i === 0) ctx.moveTo(x, y)
-    else ctx.lineTo(x, y)
+  if (radius <= 0 || sides < 3) return
+  for (let i = 0; i < sides; i++) {
+    const angle = baseRotation + (i / sides) * Math.PI * 2
+    const px = cx + Math.cos(angle) * radius
+    const py = cy + Math.sin(angle) * radius
+    if (i === 0) ctx.moveTo(px, py)
+    else ctx.lineTo(px, py)
   }
   ctx.closePath()
-  ctx.fill()
 }
 
-function drawDiamond(
+function drawHalftoneShape(
   ctx: CanvasRenderingContext2D,
-  cx: number,
-  cy: number,
-  r: number,
+  shape: string,
+  centerX: number,
+  centerY: number,
+  radius: number,
+  rotationDeg: number,
 ): void {
-  ctx.beginPath()
-  ctx.moveTo(cx, cy - r)
-  ctx.lineTo(cx + r, cy)
-  ctx.lineTo(cx, cy + r)
-  ctx.lineTo(cx - r, cy)
-  ctx.closePath()
-  ctx.fill()
+  if (radius <= 0) return
+  const rotation = (rotationDeg * Math.PI) / 180
+  switch (shape) {
+    case 'square': {
+      const side = radius * 2
+      if (Math.abs(rotation) <= 0.0001) {
+        ctx.fillRect(centerX - radius, centerY - radius, side, side)
+        return
+      }
+      ctx.save()
+      ctx.translate(centerX, centerY)
+      ctx.rotate(rotation)
+      ctx.fillRect(-radius, -radius, side, side)
+      ctx.restore()
+      return
+    }
+    case 'diamond':
+      ctx.save()
+      ctx.translate(centerX, centerY)
+      ctx.rotate(rotation)
+      ctx.beginPath()
+      drawRegularPolygon(ctx, 0, 0, radius, 4, Math.PI / 4)
+      ctx.fill()
+      ctx.restore()
+      return
+    case 'pentagon':
+      ctx.save()
+      ctx.translate(centerX, centerY)
+      ctx.rotate(rotation)
+      ctx.beginPath()
+      drawRegularPolygon(ctx, 0, 0, radius, 5, -Math.PI / 2)
+      ctx.fill()
+      ctx.restore()
+      return
+    case 'hexagon':
+      ctx.save()
+      ctx.translate(centerX, centerY)
+      ctx.rotate(rotation)
+      ctx.beginPath()
+      drawRegularPolygon(ctx, 0, 0, radius, 6, -Math.PI / 2)
+      ctx.fill()
+      ctx.restore()
+      return
+    case 'circle':
+    default:
+      ctx.beginPath()
+      ctx.arc(centerX, centerY, radius, 0, Math.PI * 2)
+      ctx.fill()
+  }
 }
 
 export function renderHalftone(rc: RenderContext): void {
-  const { ctx, brightnessGrid, colorGrid, cols, rows, layer, cellWidth, cellHeight } = rc
-  const rotation = (layer.halftoneRotation * Math.PI) / 180
+  const { ctx, brightnessGrid, colorGrid, cols, rows, layer, cellWidth, cellHeight, mouseX, mouseY } = rc
+  const halftoneSize = clamp(layer.halftoneSize, 0.4, 2.2)
+  const halftoneRotation = clamp(layer.halftoneRotation, -180, 180)
 
   ctx.save()
-  ctx.globalAlpha = layer.opacity
-
-  if (rotation !== 0) {
-    const cx = (cols * cellWidth) / 2
-    const cy = (rows * cellHeight) / 2
-    ctx.translate(cx, cy)
-    ctx.rotate(rotation)
-    ctx.translate(-cx, -cy)
-  }
 
   for (let y = 0; y < rows; y++) {
     for (let x = 0; x < cols; x++) {
       const i = y * cols + x
-      const b = brightnessGrid[i]
-      if (b < 0.02) continue
+      let b = brightnessGrid[i]
 
-      const maxR = Math.min(cellWidth, cellHeight) / 2
-      const radius = b * maxR * layer.halftoneSize
-      if (radius < 0.3) continue
+      const vFactor = getVignetteFactor(x, y, cols, rows, layer.vignette)
+      ctx.globalAlpha = layer.opacity * vFactor
+      if (ctx.globalAlpha <= 0.002) continue
 
-      const px = x * cellWidth + cellWidth / 2
-      const py = y * cellHeight + cellHeight / 2
-      const [r, g, bl] = colorGrid[i]
+      if (layer.invertColor) b = 1 - b
+      b = clamp(b, 0, 1)
 
-      switch (layer.colorMode) {
-        case 'fullcolor':
-          ctx.fillStyle = `rgb(${r},${g},${bl})`
-          break
-        case 'matrix':
-          ctx.fillStyle = `rgba(0,255,65,${b})`
-          break
-        case 'amber':
-          ctx.fillStyle = `rgba(255,176,0,${b})`
-          break
-        case 'custom':
-          ctx.fillStyle = layer.customColor
-          break
-        default: {
-          const v = Math.round(b * 255)
-          ctx.fillStyle = `rgb(${v},${v},${v})`
-        }
-      }
+      const screen =
+        (Math.sin((x * 0.82 + y * 0.33) * 1.55) +
+          Math.cos((x * 0.27 - y * 0.94) * 1.25) + 2) * 0.25
+      const dotLevel = clamp(Math.pow(b, 0.92) * 0.82 + screen * 0.18, 0, 1)
+      const maxRadius = Math.max(0.1, Math.min(cellWidth, cellHeight) * 0.5)
+      const radius = maxRadius * dotLevel * halftoneSize
+      if (radius < 0.35) continue
 
-      switch (layer.halftoneShape) {
-        case 'circle':
-          ctx.beginPath()
-          ctx.arc(px, py, radius, 0, Math.PI * 2)
-          ctx.fill()
-          break
-        case 'square':
-          ctx.fillRect(px - radius, py - radius, radius * 2, radius * 2)
-          break
-        case 'diamond':
-          drawDiamond(ctx, px, py, radius)
-          break
-        case 'pentagon':
-          drawPentagon(ctx, px, py, radius)
-          break
-        case 'hexagon':
-          drawHexagon(ctx, px, py, radius)
-          break
-      }
+      const color = getColorForMode(b, colorGrid[i], layer.colorMode, layer.customColor)
+      ctx.fillStyle = color
+
+      const { ox, oy } = getMouseOffset(
+        x, y, cellWidth, cellHeight, mouseX, mouseY,
+        layer.mouseAreaSize, layer.mouseSpread, layer.hoverStrength, layer.mouseInteraction,
+      )
+      const cx = x * cellWidth + cellWidth / 2 + ox
+      const cy = y * cellHeight + cellHeight / 2 + oy
+
+      drawHalftoneShape(ctx, layer.halftoneShape, cx, cy, radius, halftoneRotation)
     }
   }
 

@@ -1,96 +1,68 @@
 import type { RenderContext } from './types.ts'
+import { getBrailleCharset, getCharForBrightness } from '@/engine/charsets.ts'
+import { getLocalEdgeContrast, getColorForMode, getVignetteFactor, getMouseOffset } from '@/engine/renderUtils.ts'
 
-const BRAILLE_BASE = 0x2800
-
-// braille dot positions map 2x4 grid to bits:
-// [0] [3]
-// [1] [4]
-// [2] [5]
-// [6] [7]
-const DOT_BITS = [
-  [0, 3],
-  [1, 4],
-  [2, 5],
-  [6, 7],
-]
-
-function getThreshold(variant: string): number {
-  switch (variant) {
-    case 'sparse':
-      return 0.65
-    case 'dense':
-      return 0.35
-    default:
-      return 0.5
-  }
+function clamp(v: number, min: number, max: number): number {
+  return Math.max(min, Math.min(max, v))
 }
 
 export function renderBraille(rc: RenderContext): void {
-  const { ctx, brightnessGrid, colorGrid, cols, rows, layer, cellWidth, cellHeight } = rc
-  const threshold = getThreshold(layer.brailleVariant)
+  const { ctx, brightnessGrid, colorGrid, cols, rows, layer, cellWidth, cellHeight, mouseX, mouseY } = rc
+  const charset = getBrailleCharset(layer.brailleVariant)
 
   ctx.font = `${layer.fontSize}px "${layer.font}"`
   ctx.textBaseline = 'top'
   ctx.textAlign = 'left'
-  ctx.globalAlpha = layer.opacity
 
-  // each braille char represents 2x4 cells
-  const bCols = Math.floor(cols / 2)
-  const bRows = Math.floor(rows / 4)
+  const variantBias = layer.brailleVariant === 'dense' ? 0.11
+    : layer.brailleVariant === 'sparse' ? -0.08
+    : 0
+  const brailleVariantExtra = layer.brailleVariant === 'dense' ? 10
+    : layer.brailleVariant === 'sparse' ? -4
+    : 4
 
-  for (let by = 0; by < bRows; by++) {
-    for (let bx = 0; bx < bCols; bx++) {
-      let codePoint = BRAILLE_BASE
-      let avgR = 0, avgG = 0, avgB = 0
-      let count = 0
+  for (let y = 0; y < rows; y++) {
+    for (let x = 0; x < cols; x++) {
+      const i = y * cols + x
+      let b = brightnessGrid[i]
 
-      for (let dy = 0; dy < 4; dy++) {
-        for (let dx = 0; dx < 2; dx++) {
-          const sx = bx * 2 + dx
-          const sy = by * 4 + dy
-          if (sx >= cols || sy >= rows) continue
+      const vFactor = getVignetteFactor(x, y, cols, rows, layer.vignette)
+      ctx.globalAlpha = layer.opacity * vFactor
+      if (ctx.globalAlpha <= 0.002) continue
 
-          const i = sy * cols + sx
-          const b = brightnessGrid[i]
-          const [r, g, bl] = colorGrid[i]
-          avgR += r; avgG += g; avgB += bl
-          count++
+      if (layer.invertColor) b = 1 - b
+      b = clamp(b, 0, 1)
 
-          if (b > threshold) {
-            codePoint |= 1 << DOT_BITS[dy][dx]
-          }
-        }
-      }
+      const edgeContrast = getLocalEdgeContrast(brightnessGrid, x, y, cols, rows)
+      const brailleBoost = (8 + edgeContrast * 40 + brailleVariantExtra) / 255
+      const boosted = clamp(b + brailleBoost, 0, 1)
 
-      if (codePoint === BRAILLE_BASE) continue
+      const screen =
+        (Math.sin((x * 0.73 + y * 0.41) * 1.37) +
+          Math.cos((x * 0.29 - y * 0.88) * 1.11) + 2) * 0.25
+      const concentration = clamp(
+        edgeContrast * 1.55 + Math.max(0, boosted - 0.45) * 0.28,
+        0, 1,
+      )
+      const adjusted = clamp(
+        Math.pow(boosted, 0.88) * 0.82 +
+          screen * 0.11 +
+          concentration * 0.24 +
+          variantBias,
+        0, 1,
+      )
 
-      if (count > 0) {
-        avgR = Math.round(avgR / count)
-        avgG = Math.round(avgG / count)
-        avgB = Math.round(avgB / count)
-      }
+      const ch = getCharForBrightness(adjusted, charset)
+      if (ch === ' ') continue
 
-      switch (layer.colorMode) {
-        case 'fullcolor':
-          ctx.fillStyle = `rgb(${avgR},${avgG},${avgB})`
-          break
-        case 'matrix':
-          ctx.fillStyle = '#00ff41'
-          break
-        case 'amber':
-          ctx.fillStyle = '#ffb000'
-          break
-        case 'custom':
-          ctx.fillStyle = layer.customColor
-          break
-        default: {
-          const v = Math.round((0.299 * avgR + 0.587 * avgG + 0.114 * avgB))
-          ctx.fillStyle = `rgb(${v},${v},${v})`
-        }
-      }
+      const color = getColorForMode(boosted, colorGrid[i], layer.colorMode, layer.customColor)
+      ctx.fillStyle = color
 
-      const ch = String.fromCodePoint(codePoint)
-      ctx.fillText(ch, bx * cellWidth * 2, by * cellHeight * 4)
+      const { ox, oy } = getMouseOffset(
+        x, y, cellWidth, cellHeight, mouseX, mouseY,
+        layer.mouseAreaSize, layer.mouseSpread, layer.hoverStrength, layer.mouseInteraction,
+      )
+      ctx.fillText(ch, x * cellWidth + ox, y * cellHeight + oy)
     }
   }
   ctx.globalAlpha = 1
