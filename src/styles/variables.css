@@ -1,0 +1,61 @@
+:root {
+  --bg: #000;
+  --bg-surface: #0a0a0a;
+  --bg-panel: #111;
+  --bg-control: #1a1a1a;
+  --bg-hover: #222;
+  --bg-active: #2a2a2a;
+
+  --fg: #fff;
+  --fg-muted: #888;
+  --fg-dim: #555;
+
+  --accent: #ffff00;
+  --accent-dim: rgba(255, 255, 0, 0.15);
+  --accent-hover: #e6e600;
+
+  --border: #222;
+  --border-subtle: #1a1a1a;
+
+  --danger: #ff4444;
+  --success: #00ff99;
+
+  --font-display: 'Helvetica Neue', 'Inter', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+  --font-ui: 'Inter', system-ui, sans-serif;
+
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+
+  --sidebar-width: 320px;
+  --header-height: 48px;
+
+  --z-canvas: 0;
+  --z-sidebar: 10;
+  --z-header: 20;
+  --z-modal: 100;
+  --z-toast: 200;
+
+  --transition-fast: 120ms ease;
+  --transition-normal: 200ms ease;
+}
+
+[data-theme='light'] {
+  --bg: #f5f5f5;
+  --bg-surface: #fff;
+  --bg-panel: #fafafa;
+  --bg-control: #eee;
+  --bg-hover: #e5e5e5;
+  --bg-active: #ddd;
+
+  --fg: #111;
+  --fg-muted: #666;
+  --fg-dim: #999;
+
+  --accent: #cc0;
+  --accent-dim: rgba(204, 204, 0, 0.12);
+
+  --border: #ddd;
+  --border-subtle: #eee;
+}
