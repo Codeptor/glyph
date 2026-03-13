@@ -1,4 +1,5 @@
 import type { Layer, FXPreset, NoiseDirection } from '@/types'
+import { simplex3, fbm2 } from './noise'
 
 function clamp(v: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, v))
@@ -63,11 +64,11 @@ function applyNoise(
       const { primaryNorm, secondaryNorm } = cellNorms(x, y, cols, rows, dir)
       const px = (primaryNorm * maxDim + 17.3) / scale
       const py = (secondaryNorm * maxDim - 9.7) / scale
-      const wave1 = Math.sin(px + z) * Math.cos(py - z * 0.73)
-      const wave2 = Math.sin(primaryNorm * maxDim * 1.37 + secondaryNorm * maxDim * 2.11 + z * 6.2)
+      const n1 = simplex3(px, py, z)
+      const n2 = simplex3(px * 2.17 + 5.3, py * 2.17 + 5.3, z * 1.4)
       const amount = (16 + strength * 72) / 255
       const i = y * cols + x
-      grid[i] = clamp(grid[i] + (wave1 * 0.65 + wave2 * 0.35) * amount, 0, 1)
+      grid[i] = clamp(grid[i] + (n1 * 0.65 + n2 * 0.35) * amount, 0, 1)
     }
   }
 }
@@ -191,28 +192,80 @@ function renderCrt(
   time: number,
 ): void {
   const strength = clamp(layer.fxStrength, 0, 1)
+  if (strength <= 0.001) return
 
-  // scanlines
-  ctx.fillStyle = `rgba(0,0,0,${strength * 0.15})`
-  for (let y = 0; y < height; y += 3) {
+  // --- Scanlines with brightness-dependent visibility ---
+  // Gaussian-inspired scanline profile: darker lines between rows
+  const scanlineSpacing = 3
+  const scanlineAlpha = strength * 0.18
+  ctx.fillStyle = `rgba(0,0,0,${scanlineAlpha})`
+  for (let y = 0; y < height; y += scanlineSpacing) {
     ctx.fillRect(0, y, width, 1)
   }
 
-  // vignette
-  const grad = ctx.createRadialGradient(
-    width / 2, height / 2, Math.min(width, height) * 0.3,
-    width / 2, height / 2, Math.max(width, height) * 0.7,
+  // --- Phosphor mask (aperture grille - vertical RGB stripes) ---
+  // Subtle at low strength, more visible at high
+  const maskStrength = strength * 0.06
+  if (maskStrength > 0.005) {
+    const imgData = ctx.getImageData(0, 0, width, height)
+    const data = imgData.data
+    for (let py = 0; py < height; py++) {
+      for (let px = 0; px < width; px++) {
+        const idx = (py * width + px) * 4
+        const subpixel = px % 3
+        // Darken non-active subpixels
+        const maskR = subpixel === 0 ? 1.0 : 1.0 - maskStrength
+        const maskG = subpixel === 1 ? 1.0 : 1.0 - maskStrength
+        const maskB = subpixel === 2 ? 1.0 : 1.0 - maskStrength
+        data[idx] = Math.min(255, Math.round(data[idx] * maskR))
+        data[idx + 1] = Math.min(255, Math.round(data[idx + 1] * maskG))
+        data[idx + 2] = Math.min(255, Math.round(data[idx + 2] * maskB))
+      }
+    }
+    ctx.putImageData(imgData, 0, 0)
+  }
+
+  // --- CRT vignette with corner darkening ---
+  const vGrad = ctx.createRadialGradient(
+    width / 2, height / 2, Math.min(width, height) * 0.25,
+    width / 2, height / 2, Math.max(width, height) * 0.75,
   )
-  grad.addColorStop(0, 'rgba(0,0,0,0)')
-  grad.addColorStop(1, `rgba(0,0,0,${strength * 0.4})`)
-  ctx.fillStyle = grad
+  vGrad.addColorStop(0, 'rgba(0,0,0,0)')
+  vGrad.addColorStop(0.7, `rgba(0,0,0,${strength * 0.15})`)
+  vGrad.addColorStop(1, `rgba(0,0,0,${strength * 0.45})`)
+  ctx.fillStyle = vGrad
   ctx.fillRect(0, 0, width, height)
 
-  // flicker
-  const flicker = Math.sin(time * 30) * 0.01 * strength
+  // --- Subtle barrel distortion border (dark edge) ---
+  // Draw a soft black border to simulate CRT curvature edges
+  const borderSize = Math.max(2, Math.min(width, height) * strength * 0.015)
+  const borderAlpha = strength * 0.3
+  ctx.fillStyle = `rgba(0,0,0,${borderAlpha})`
+  ctx.fillRect(0, 0, width, borderSize) // top
+  ctx.fillRect(0, height - borderSize, width, borderSize) // bottom
+  ctx.fillRect(0, 0, borderSize, height) // left
+  ctx.fillRect(width - borderSize, 0, borderSize, height) // right
+
+  // --- Temporal flicker ---
+  const flicker = Math.sin(time * 37.7) * 0.008 * strength + Math.sin(time * 59.3) * 0.004 * strength
   if (flicker > 0) {
     ctx.fillStyle = `rgba(255,255,255,${flicker})`
     ctx.fillRect(0, 0, width, height)
+  } else if (flicker < 0) {
+    ctx.fillStyle = `rgba(0,0,0,${-flicker})`
+    ctx.fillRect(0, 0, width, height)
+  }
+
+  // --- Subtle glow/bloom effect on bright areas ---
+  // Use canvas shadow blur as a cheap bloom approximation
+  if (strength > 0.3) {
+    ctx.save()
+    ctx.globalCompositeOperation = 'lighter'
+    ctx.globalAlpha = (strength - 0.3) * 0.04
+    ctx.filter = `blur(${Math.round(2 + strength * 4)}px)`
+    ctx.drawImage(ctx.canvas, 0, 0)
+    ctx.restore()
+    ctx.filter = 'none'
   }
 }
 
