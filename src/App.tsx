@@ -4,7 +4,6 @@ import { Sidebar } from '@/components/Sidebar'
 import { ToastProvider } from '@/components/Toast'
 import { DragOverlay } from '@/components/DragOverlay'
 import { DBInit } from '@/components/DBInit'
-import '@/styles/global.css'
 
 function App() {
   const themeMode = useStore((s) => s.themeMode)
