@@ -345,6 +345,15 @@ export function drawBgDitherPass(
 
 // --- Inverse Dither fills ---
 
+function computeInverseCoverage(
+  b: number, x: number, y: number, strength: number, time: number,
+): number {
+  const threshold = bayerThreshold(x, y)
+  const drift = (Math.sin((x + 1) * 7.31 + (y + 1) * 3.17 + time * 0.75) + 1) * 0.5
+  const pattern = threshold * 0.72 + drift * 0.28
+  return clamp(b * (0.92 + strength * 0.9) - pattern + 0.34, 0, 1)
+}
+
 export function drawInverseDitherPass(
   ctx: CanvasRenderingContext2D,
   grid: Float32Array,
