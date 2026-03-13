@@ -12,7 +12,7 @@ export function Sidebar() {
   const [showPresets, setShowPresets] = useState(false)
 
   return (
-    <div className="ui-layer">
+    <aside className="ui-layer">
       <div style={{ overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: 0 }}>
         <SidebarHeader />
         <SourceUpload />
@@ -27,6 +27,6 @@ export function Sidebar() {
       />
       {showExport && <ExportPopover onClose={() => setShowExport(false)} />}
       {showPresets && <SavePopover onClose={() => setShowPresets(false)} />}
-    </div>
+    </aside>
   )
 }

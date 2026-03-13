@@ -24,13 +24,13 @@ function App() {
   return (
     <ToastProvider>
       <DBInit />
-      <div
+      <main
         className={`a7-shell${sidebarHidden ? ' is-right-sidebar-hidden' : ''}`}
         data-theme={themeMode}
       >
         <AsciiCanvas />
         {!sidebarHidden && <Sidebar />}
-      </div>
+      </main>
       <DragOverlay />
     </ToastProvider>
   )

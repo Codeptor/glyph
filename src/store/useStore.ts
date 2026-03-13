@@ -173,7 +173,7 @@ interface AppState {
 
 export const useStore = create<AppState>((set, get) => ({
   sourceMode: 'image',
-  sourceQuality: 720,
+  sourceQuality: 320,
   sourceImage: null,
 
   layers: [createDefaultLayer()],

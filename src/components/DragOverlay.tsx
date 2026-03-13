@@ -31,7 +31,8 @@ export function DragOverlay() {
     dragCounterRef.current = 0
     setIsDragging(false)
     const file = e.dataTransfer?.files[0]
-    if (file && file.type.startsWith('image/')) {
+    if (!file) return
+    if (file.type.startsWith('image/')) {
       const reader = new FileReader()
       reader.onload = (ev) => {
         const result = ev.target?.result
@@ -40,6 +41,17 @@ export function DragOverlay() {
         }
       }
       reader.readAsDataURL(file)
+    } else if (file.type.startsWith('video/')) {
+      const url = URL.createObjectURL(file)
+      const video = document.createElement('video')
+      video.src = url
+      video.loop = true
+      video.muted = true
+      video.playsInline = true
+      video.onloadeddata = () => {
+        video.play()
+        window.dispatchEvent(new CustomEvent('camera-ready', { detail: video }))
+      }
     }
   }, [setSourceImage])
 
@@ -61,7 +73,8 @@ export function DragOverlay() {
   return (
     <div className="drag-overlay">
       <div className="drag-overlay-inner">
-        <div className="drag-overlay-text">Drop image to load</div>
+        <div className="drag-overlay-text">Drop file to import</div>
+        <div className="drag-overlay-sub">The dropped media file will become the current render source.</div>
       </div>
     </div>
   )

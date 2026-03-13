@@ -33,6 +33,22 @@
   font-weight: 500;
 }
 
+.drag-overlay-text {
+  font-size: 0.85rem;
+  font-family: var(--font-display);
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--accent);
+  font-weight: 500;
+}
+
+.drag-overlay-sub {
+  font-size: 0.62rem;
+  font-family: var(--font-display);
+  letter-spacing: 0.1em;
+  color: rgba(255, 255, 255, 0.5);
+}
+
 .drag-overlay-subtitle {
   font-size: 0.62rem;
   font-family: var(--font-display);
