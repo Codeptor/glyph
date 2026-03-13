@@ -1,5 +1,5 @@
 import type { Layer, FXPreset, NoiseDirection } from '@/types'
-import { simplex3, fbm2 } from './noise'
+import { simplex3 } from './noise'
 
 function clamp(v: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, v))
@@ -289,7 +289,7 @@ function renderMatrixRain(
     'top-left': [-0.707, -0.707], 'top-right': [0.707, -0.707],
     'bottom-left': [-0.707, 0.707], 'bottom-right': [0.707, 0.707],
   }
-  const [_dx, dy] = dirVectors[layer.matrixDirection] ?? [0, 1]
+  const [, dy] = dirVectors[layer.matrixDirection] ?? [0, 1]
   const falling = dy >= 0
 
   const mCols = Math.ceil(width / scale)

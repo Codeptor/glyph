@@ -1,10 +1,10 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useStore } from '@/store/useStore'
 
 export function DragOverlay() {
   const [isDragging, setIsDragging] = useState(false)
   const setSourceImage = useStore((s) => s.setSourceImage)
-  const dragCounterRef = { current: 0 }
+  const dragCounterRef = useRef(0)
 
   const handleDragEnter = useCallback((e: DragEvent) => {
     e.preventDefault()

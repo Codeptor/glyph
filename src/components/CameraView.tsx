@@ -75,12 +75,14 @@ export function CameraView({ quality, onVideoReady, onVideoStop }: Props) {
   useEffect(() => {
     startCamera()
     return () => stopCamera()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   useEffect(() => {
     if (streamRef.current) {
       startCamera(activeDeviceId || undefined)
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [quality])
 
   const switchDevice = (deviceId: string) => {

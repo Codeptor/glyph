@@ -5,7 +5,8 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Separator } from '@/components/ui/separator'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { SliderField, fmtPx, fmtMul, fmtInt, fmtDeg } from '@/components/SliderField'
+import { SliderField } from '@/components/SliderField'
+import { fmtPx, fmtMul, fmtInt, fmtDeg } from '@/lib/format'
 import type {
   ArtStyle, CharacterSet, DitherAlgorithm, FontFamily, ColorMode,
   FXPreset, NoiseDirection, MouseInteraction, HalftoneShape,
