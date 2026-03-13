@@ -400,7 +400,7 @@ export function ControlsPanel() {
                 className={layer.mouseInteraction === mi ? 'active' : ''}
                 onClick={() => update({ mouseInteraction: mi })}
               >
-                {mi}
+                {mi.charAt(0).toUpperCase() + mi.slice(1)}
               </button>
             ))}
           </div>

@@ -11,7 +11,7 @@ interface Props {
 function formatValue(label: string, value: number, step?: number): string {
   if (label === 'Font Size') return `${Math.round(value)}px`
   if (label === 'Area Size') return `${Math.round(value)}px`
-  if (label === 'Character Spacing' || label === 'Spread') return `${value.toFixed(1)}x`
+  if (label === 'Character Spacing' || label === 'Spread') return `${Number(value.toFixed(1)).toString()}x`
   if (step && step >= 1) return String(Math.round(value))
   return String(parseFloat(value.toFixed(2)))
 }
