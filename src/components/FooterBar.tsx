@@ -17,26 +17,24 @@ export function FooterBar({ onExport, onPresets }: Props) {
   if (!layer) return null
 
   const items = [
-    { label: 'FMT', value: 'ASCII CANVAS' },
     { label: 'STYLE', value: layer.artStyle.toUpperCase().replace('-', ' ') },
     { label: 'FONT', value: layer.font.toUpperCase() },
-    { label: 'AR', value: aspectRatio === 'original' ? 'SOURCE' : aspectRatio },
-    { label: 'FX', value: layer.fxPreset === 'none' ? 'NONE' : layer.fxPreset.toUpperCase().replace('-', ' ') },
+    { label: 'AR', value: aspectRatio === 'original' ? 'SRC' : aspectRatio },
+    { label: 'FX', value: layer.fxPreset === 'none' ? '—' : layer.fxPreset.toUpperCase().replace('-', ' ') },
     { label: 'BG', value: backgroundColor },
-    { label: 'RES', value: 'DYNAMIC' },
   ]
 
   return (
-    <div className="flex flex-col gap-1 border-t border-border px-3 py-2">
-      <div className="flex flex-wrap gap-x-2 gap-y-0.5">
+    <div className="flex flex-col gap-1.5 border-t border-border px-3 py-2.5">
+      <div className="flex flex-wrap gap-x-3 gap-y-0.5">
         {items.map((item) => (
           <span key={item.label} className="text-[9px] font-mono whitespace-nowrap">
-            <span className="text-muted-foreground/50">{item.label}</span>{' '}
-            <span className="text-muted-foreground">{item.value}</span>
+            <span className="text-muted-foreground/40">{item.label}</span>{' '}
+            <span className="text-muted-foreground/80">{item.value}</span>
           </span>
         ))}
       </div>
-      <div className="flex items-center gap-1">
+      <div className="flex items-center gap-0.5">
         <Button
           variant="ghost"
           size="xs"

@@ -16,7 +16,7 @@ export function LeftModeButtons() {
 
   return (
     <div className="absolute top-3 left-3 z-10 flex items-center gap-1.5">
-      <span className="text-sm font-bold font-mono tracking-tighter text-accent/80 mr-1 select-none">G</span>
+      <span className="flex items-center justify-center w-5 h-5 rounded bg-accent/90 text-accent-foreground font-mono font-black text-[11px] leading-none select-none mr-0.5">G</span>
       {PANELS.map((p) => (
         <Button
           key={p.value}
