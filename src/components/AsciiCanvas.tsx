@@ -11,6 +11,7 @@ import { TemplatesView } from './TemplatesView'
 export function AsciiCanvas() {
   const containerRef = useRef<HTMLDivElement>(null)
   const rendererRef = useRef<AsciiRenderer | null>(null)
+  const addImageRef = useRef<HTMLInputElement>(null)
   const [fps, setFps] = useState(0)
   const [loopStarted, setLoopStarted] = useState(false)
   const [showExport, setShowExport] = useState(false)
@@ -24,6 +25,7 @@ export function AsciiCanvas() {
   const sidebarHidden = useStore((s) => s.sidebarHidden)
   const setSidebarHidden = useStore((s) => s.setSidebarHidden)
   const addGalleryAsset = useStore((s) => s.addGalleryAsset)
+  const setSourceImage = useStore((s) => s.setSourceImage)
   const leftPanel = useStore((s) => s.leftPanel)
 
   useEffect(() => {
@@ -148,6 +150,31 @@ export function AsciiCanvas() {
     })
   }, [addGalleryAsset])
 
+  const handleAddImage = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (file.type.startsWith('image/')) {
+      const reader = new FileReader()
+      reader.onload = (ev) => {
+        const result = ev.target?.result
+        if (typeof result === 'string') setSourceImage(result)
+      }
+      reader.readAsDataURL(file)
+    } else if (file.type.startsWith('video/')) {
+      const url = URL.createObjectURL(file)
+      const video = document.createElement('video')
+      video.src = url
+      video.loop = true
+      video.muted = true
+      video.playsInline = true
+      video.onloadeddata = () => {
+        video.play()
+        window.dispatchEvent(new CustomEvent('camera-ready', { detail: video }))
+      }
+    }
+    e.target.value = ''
+  }, [setSourceImage])
+
   const handleDownload = useCallback(() => {
     const renderer = rendererRef.current
     if (!renderer) return
@@ -171,6 +198,22 @@ export function AsciiCanvas() {
       <div className="left-sidebar-controls">
         <button
           className="left-mode-button"
+          onClick={() => addImageRef.current?.click()}
+          title="Add image or video"
+        >
+          Add Image
+        </button>
+        <input
+          ref={addImageRef}
+          type="file"
+          accept="image/*,video/*"
+          style={{ display: 'none' }}
+          onChange={handleAddImage}
+        />
+      </div>
+      <div className="canvas-bottom-right">
+        <button
+          className="left-mode-button"
           onClick={handleDownload}
           title="Download PNG"
         >
@@ -182,20 +225,6 @@ export function AsciiCanvas() {
           title="Save to gallery"
         >
           +
-        </button>
-        <button
-          className="left-mode-button"
-          onClick={() => setShowExport(!showExport)}
-          title="Export preset"
-        >
-          { }
-        </button>
-        <button
-          className="left-mode-button"
-          onClick={() => setShowPresets(!showPresets)}
-          title="Presets"
-        >
-          ★
         </button>
         <button
           className="left-mode-button"

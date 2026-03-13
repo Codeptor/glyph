@@ -2,7 +2,7 @@ import { useStore } from '@/store/useStore'
 import type { AspectRatio } from '@/types'
 
 const ASPECTS: { value: AspectRatio; label: string }[] = [
-  { value: 'original', label: 'OG' },
+  { value: 'original', label: 'Original' },
   { value: '16:9', label: '16:9' },
   { value: '4:3', label: '4:3' },
   { value: '1:1', label: '1:1' },
@@ -20,11 +20,12 @@ export function LeftBottomBar({ fps }: Props) {
   const backgroundColor = useStore((s) => s.backgroundColor)
   const setBackgroundColor = useStore((s) => s.setBackgroundColor)
 
-  const fpsClass = fps < 15 ? ' is-critical' : fps < 25 ? ' is-warning' : ''
+  const fpsDisplay = fps > 0 ? `FPS ${fps}` : 'FPS --'
+  const fpsClass = fps > 0 && fps < 15 ? ' is-critical' : fps > 0 && fps < 25 ? ' is-warning' : ''
 
   return (
     <div className="left-bottom-bar">
-      <div className={`fps-overlay${fpsClass}`}>{fps} FPS</div>
+      <div className={`fps-overlay${fpsClass}`}>{fpsDisplay}</div>
       <div className="aspect-overlay-tabs">
         {ASPECTS.map((a) => (
           <button
@@ -37,10 +38,15 @@ export function LeftBottomBar({ fps }: Props) {
         ))}
       </div>
       <div className="bg-overlay-picker">
+        <span className="bg-label">BG</span>
         <input
-          type="color"
+          type="text"
+          className="bg-hex-input"
           value={backgroundColor}
-          onChange={(e) => setBackgroundColor(e.target.value)}
+          onChange={(e) => {
+            const v = e.target.value
+            if (/^#[0-9a-fA-F]{0,6}$/.test(v)) setBackgroundColor(v)
+          }}
           title="Background color"
         />
       </div>
