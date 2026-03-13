@@ -96,6 +96,20 @@ export function getColorForMode(
       const F = clamp(gray + 20, 0, 255)
       return `rgb(${F},${Math.floor(F * 0.7)},${Math.floor(F * 0.15)})`
     }
+    case 'sepia': {
+      const F = clamp(gray + 15, 0, 255)
+      return `rgb(${clamp(Math.floor(F * 1.1), 0, 255)},${clamp(Math.floor(F * 0.85), 0, 255)},${clamp(Math.floor(F * 0.65), 0, 255)})`
+    }
+    case 'cool-blue': {
+      const F = clamp(gray + 15, 0, 255)
+      return `rgb(${clamp(Math.floor(F * 0.55), 0, 255)},${clamp(Math.floor(F * 0.75), 0, 255)},${F})`
+    }
+    case 'neon': {
+      const F = clamp(gray, 0, 255)
+      const hue = (F / 255) * 300 // cycle through neon pink->purple->blue->cyan
+      const s = 100, l = Math.max(20, Math.min(70, F / 255 * 80))
+      return `hsl(${hue},${s}%,${l}%)`
+    }
     case 'custom': {
       const raw = (customColor || '').trim()
       const match = /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.exec(raw)
@@ -282,6 +296,32 @@ function getBgDitherTint(
       b: clamp(Math.floor(intensity * 0.16), 0, 255),
     }
   }
+  if (colorMode === 'sepia') {
+    const intensity = clamp(gray + 15, 0, 255)
+    return {
+      r: clamp(Math.floor(intensity * 1.1), 0, 255),
+      g: clamp(Math.floor(intensity * 0.85), 0, 255),
+      b: clamp(Math.floor(intensity * 0.65), 0, 255),
+    }
+  }
+  if (colorMode === 'cool-blue') {
+    const intensity = clamp(gray + 15, 0, 255)
+    return {
+      r: clamp(Math.floor(intensity * 0.55), 0, 255),
+      g: clamp(Math.floor(intensity * 0.75), 0, 255),
+      b: intensity,
+    }
+  }
+  if (colorMode === 'neon') {
+    const hue = (gray / 255) * 300
+    const angle = hue * Math.PI / 180
+    const mid = gray * 0.6
+    return {
+      r: clamp(Math.round(mid + gray * 0.4 * Math.cos(angle)), 0, 255),
+      g: clamp(Math.round(mid + gray * 0.4 * Math.cos(angle - 2.094)), 0, 255),
+      b: clamp(Math.round(mid + gray * 0.4 * Math.cos(angle + 2.094)), 0, 255),
+    }
+  }
   if (colorMode === 'custom') {
     const raw = (customColor || '').trim()
     const match = /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.exec(raw)
@@ -398,6 +438,9 @@ function getBorderGlowColor(
   }
   if (colorMode === 'matrix') return { r: 110, g: 255, b: 175 }
   if (colorMode === 'amber') return { r: 255, g: 192, b: 118 }
+  if (colorMode === 'sepia') return { r: 255, g: 218, b: 168 }
+  if (colorMode === 'cool-blue') return { r: 140, g: 190, b: 255 }
+  if (colorMode === 'neon') return { r: 255, g: 100, b: 255 }
   if (colorMode === 'custom') {
     const raw = (customColor || '').trim()
     const match = /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.exec(raw)

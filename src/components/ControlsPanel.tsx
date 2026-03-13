@@ -42,6 +42,10 @@ const DITHER_ALGORITHMS: { value: DitherAlgorithm; label: string }[] = [
   { value: 'floyd-steinberg', label: 'Floyd-Steinberg' },
   { value: 'bayer', label: 'Bayer (Ordered)' },
   { value: 'atkinson', label: 'Atkinson' },
+  { value: 'jarvis-judice-ninke', label: 'Jarvis-Judice-Ninke' },
+  { value: 'stucki', label: 'Stucki' },
+  { value: 'sierra', label: 'Sierra' },
+  { value: 'sierra-lite', label: 'Sierra Lite' },
 ]
 
 const FONTS: FontFamily[] = ['Helvetica Neue', 'Inter', 'Poppins', 'Space Grotesk', 'VT323']
@@ -51,6 +55,9 @@ const COLOR_MODES: { value: ColorMode; label: string }[] = [
   { value: 'fullcolor', label: 'Full Color' },
   { value: 'matrix', label: 'Matrix' },
   { value: 'amber', label: 'Amber' },
+  { value: 'sepia', label: 'Sepia' },
+  { value: 'cool-blue', label: 'Cool Blue' },
+  { value: 'neon', label: 'Neon' },
   { value: 'custom', label: 'Custom' },
 ]
 
