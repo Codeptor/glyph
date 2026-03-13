@@ -3,12 +3,16 @@ import { useStore } from '@/store/useStore'
 import { AsciiRenderer } from '@/engine/AsciiRenderer'
 import { LeftModeButtons } from './LeftModeButtons'
 import { LeftBottomBar } from './LeftBottomBar'
+import { ExportPopover } from './ExportPopover'
+import { SavePopover } from './SavePopover'
 
 export function AsciiCanvas() {
   const containerRef = useRef<HTMLDivElement>(null)
   const rendererRef = useRef<AsciiRenderer | null>(null)
   const [fps, setFps] = useState(0)
   const [loopStarted, setLoopStarted] = useState(false)
+  const [showExport, setShowExport] = useState(false)
+  const [showPresets, setShowPresets] = useState(false)
 
   const layers = useStore((s) => s.layers)
   const backgroundColor = useStore((s) => s.backgroundColor)
@@ -17,6 +21,7 @@ export function AsciiCanvas() {
   const sourceMode = useStore((s) => s.sourceMode)
   const sidebarHidden = useStore((s) => s.sidebarHidden)
   const setSidebarHidden = useStore((s) => s.setSidebarHidden)
+  const addGalleryAsset = useStore((s) => s.addGalleryAsset)
 
   useEffect(() => {
     const renderer = new AsciiRenderer()
@@ -78,6 +83,37 @@ export function AsciiCanvas() {
     }
   }, [sourceImage, sourceMode])
 
+  // Camera mode: receive video element from SourceUpload via custom event
+  useEffect(() => {
+    const handleCameraReady = (e: Event) => {
+      const renderer = rendererRef.current
+      if (!renderer) return
+      const video = (e as CustomEvent).detail as HTMLVideoElement
+      renderer.setSource(video)
+      const container = containerRef.current
+      if (container) {
+        const rect = container.getBoundingClientRect()
+        const { w, h } = renderer.computeCanvasSize(aspectRatio, rect.width, rect.height)
+        renderer.resize(w, h)
+      }
+      if (!loopStarted) {
+        renderer.startLoop(layers, backgroundColor, aspectRatio, setFps)
+        setLoopStarted(true)
+      }
+    }
+
+    const handleCameraStop = () => {
+      rendererRef.current?.setSource(null)
+    }
+
+    window.addEventListener('camera-ready', handleCameraReady)
+    window.addEventListener('camera-stop', handleCameraStop)
+    return () => {
+      window.removeEventListener('camera-ready', handleCameraReady)
+      window.removeEventListener('camera-stop', handleCameraStop)
+    }
+  }, [aspectRatio, loopStarted, layers, backgroundColor])
+
   useEffect(() => {
     const renderer = rendererRef.current
     if (!renderer || !loopStarted) return
@@ -96,6 +132,29 @@ export function AsciiCanvas() {
     rendererRef.current?.setMouse(-1, -1)
   }, [])
 
+  const handleSaveToGallery = useCallback(() => {
+    const renderer = rendererRef.current
+    if (!renderer) return
+    const dataUrl = renderer.toDataURL()
+    addGalleryAsset({
+      id: crypto.randomUUID(),
+      name: `Creation ${new Date().toLocaleTimeString()}`,
+      data: dataUrl,
+      mimeType: 'image/png',
+      createdAt: new Date().toISOString(),
+    })
+  }, [addGalleryAsset])
+
+  const handleDownload = useCallback(() => {
+    const renderer = rendererRef.current
+    if (!renderer) return
+    const dataUrl = renderer.toDataURL()
+    const a = document.createElement('a')
+    a.href = dataUrl
+    a.download = `asc11-${Date.now()}.png`
+    a.click()
+  }, [])
+
   return (
     <div id="canvas-container">
       <div
@@ -109,12 +168,42 @@ export function AsciiCanvas() {
       <div className="left-sidebar-controls">
         <button
           className="left-mode-button"
+          onClick={handleDownload}
+          title="Download PNG"
+        >
+          ↓
+        </button>
+        <button
+          className="left-mode-button"
+          onClick={handleSaveToGallery}
+          title="Save to gallery"
+        >
+          +
+        </button>
+        <button
+          className="left-mode-button"
+          onClick={() => setShowExport(!showExport)}
+          title="Export preset"
+        >
+          { }
+        </button>
+        <button
+          className="left-mode-button"
+          onClick={() => setShowPresets(!showPresets)}
+          title="Presets"
+        >
+          ★
+        </button>
+        <button
+          className="left-mode-button"
           onClick={() => setSidebarHidden(!sidebarHidden)}
           title={sidebarHidden ? 'Show sidebar' : 'Hide sidebar'}
         >
-          {sidebarHidden ? '\u25B6' : '\u25C0'}
+          {sidebarHidden ? '▶' : '◀'}
         </button>
       </div>
+      {showExport && <ExportPopover onClose={() => setShowExport(false)} />}
+      {showPresets && <SavePopover onClose={() => setShowPresets(false)} />}
     </div>
   )
 }

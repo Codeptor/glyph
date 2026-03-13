@@ -1,5 +1,6 @@
 import { useRef, useState, useCallback } from 'react'
 import { useStore } from '@/store/useStore'
+import { CameraView } from './CameraView'
 import type { SourceMode, SourceQuality } from '@/types'
 
 const QUALITIES: SourceQuality[] = [320, 480, 720]
@@ -46,6 +47,14 @@ export function SourceUpload() {
     if (file) handleFile(file)
   }, [handleFile])
 
+  const handleVideoReady = useCallback((video: HTMLVideoElement) => {
+    window.dispatchEvent(new CustomEvent('camera-ready', { detail: video }))
+  }, [])
+
+  const handleVideoStop = useCallback(() => {
+    window.dispatchEvent(new CustomEvent('camera-stop'))
+  }, [])
+
   return (
     <div className="upload-widget">
       <div className="upload-controls-row">
@@ -89,9 +98,11 @@ export function SourceUpload() {
       )}
 
       {sourceMode === 'camera' && (
-        <div className="camera-error">
-          Camera support — click to enable webcam access
-        </div>
+        <CameraView
+          quality={sourceQuality}
+          onVideoReady={handleVideoReady}
+          onVideoStop={handleVideoStop}
+        />
       )}
     </div>
   )

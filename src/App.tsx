@@ -1,6 +1,8 @@
 import { useStore } from '@/store/useStore'
 import { AsciiCanvas } from '@/components/AsciiCanvas'
 import { Sidebar } from '@/components/Sidebar'
+import { ToastProvider } from '@/components/Toast'
+import { DragOverlay } from '@/components/DragOverlay'
 import '@/styles/variables.css'
 import '@/styles/shell.css'
 import '@/styles/canvas.css'
@@ -19,13 +21,16 @@ function App() {
   const sidebarHidden = useStore((s) => s.sidebarHidden)
 
   return (
-    <div
-      className={`a7-shell${sidebarHidden ? ' is-right-sidebar-hidden' : ''}`}
-      data-theme={themeMode}
-    >
-      <AsciiCanvas />
-      {!sidebarHidden && <Sidebar />}
-    </div>
+    <ToastProvider>
+      <div
+        className={`a7-shell${sidebarHidden ? ' is-right-sidebar-hidden' : ''}`}
+        data-theme={themeMode}
+      >
+        <AsciiCanvas />
+        {!sidebarHidden && <Sidebar />}
+      </div>
+      <DragOverlay />
+    </ToastProvider>
   )
 }
 
