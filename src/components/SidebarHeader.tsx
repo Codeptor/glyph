@@ -3,9 +3,7 @@ export function SidebarHeader() {
     <div className="flex flex-col gap-3 px-4 pt-5 pb-3">
       {/* Brand */}
       <div className="flex items-center gap-2.5">
-        <div className="flex items-center justify-center w-7 h-7 rounded-md bg-accent text-accent-foreground font-mono font-black text-sm leading-none select-none">
-          G
-        </div>
+        <img src="/favicon.svg" alt="Glyph" className="w-7 h-7 rounded-md select-none" draggable={false} />
         <div className="flex flex-col">
           <span className="text-sm font-bold tracking-tight font-mono text-foreground leading-none">
             GLYPH

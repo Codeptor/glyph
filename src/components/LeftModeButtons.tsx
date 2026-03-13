@@ -16,7 +16,7 @@ export function LeftModeButtons() {
 
   return (
     <div className="absolute top-3 left-3 z-10 flex items-center gap-1.5">
-      <span className="flex items-center justify-center w-5 h-5 rounded bg-accent/90 text-accent-foreground font-mono font-black text-[11px] leading-none select-none mr-0.5">G</span>
+      <img src="/favicon.svg" alt="Glyph" className="w-5 h-5 rounded select-none mr-0.5" draggable={false} />
       {PANELS.map((p) => (
         <Button
           key={p.value}
