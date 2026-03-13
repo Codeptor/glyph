@@ -1,11 +1,11 @@
 import { useStore } from '@/store/useStore'
 import { Label } from '@/components/ui/label'
-import { Slider } from '@/components/ui/slider'
 import { Input } from '@/components/ui/input'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Separator } from '@/components/ui/separator'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { SliderField, fmtPx, fmtMul, fmtInt, fmtDeg } from '@/components/SliderField'
 import type {
   ArtStyle, CharacterSet, DitherAlgorithm, FontFamily, ColorMode,
   FXPreset, NoiseDirection, MouseInteraction, HalftoneShape,
@@ -96,41 +96,6 @@ function getDirectionField(preset: FXPreset): string | null {
   }
 }
 
-interface SliderFieldProps {
-  label: string
-  value: number
-  min: number
-  max: number
-  step?: number
-  onChange: (value: number) => void
-  formatValue?: (value: number) => string
-}
-
-function SliderField({ label, value, min, max, step = 0.01, onChange, formatValue }: SliderFieldProps) {
-  const displayValue = formatValue ? formatValue(value) : String(parseFloat(value.toFixed(2)))
-
-  return (
-    <div className="space-y-1">
-      <div className="flex justify-between">
-        <Label className="text-xs uppercase tracking-wider text-muted-foreground">{label}</Label>
-        <span className="text-xs font-mono text-muted-foreground">{displayValue}</span>
-      </div>
-      <Slider
-        value={[value]}
-        min={min}
-        max={max}
-        step={step}
-        onValueChange={([v]) => onChange(v)}
-        className="cursor-crosshair"
-      />
-    </div>
-  )
-}
-
-function fmtPx(v: number) { return `${Math.round(v)}px` }
-function fmtMul(v: number) { return `${Number(v.toFixed(1))}x` }
-function fmtInt(v: number) { return String(Math.round(v)) }
-function fmtDeg(v: number) { return `${Math.round(v)}\u00B0` }
 
 export function ControlsPanel() {
   const layers = useStore((s) => s.layers)

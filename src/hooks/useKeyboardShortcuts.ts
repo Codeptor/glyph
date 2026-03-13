@@ -11,9 +11,10 @@ const ART_STYLES: ArtStyle[] = [
 
 interface Options {
   onOpenExport: () => void
+  onOpenShortcuts: () => void
 }
 
-export function useKeyboardShortcuts({ onOpenExport }: Options) {
+export function useKeyboardShortcuts({ onOpenExport, onOpenShortcuts }: Options) {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement
@@ -87,6 +88,11 @@ export function useKeyboardShortcuts({ onOpenExport }: Options) {
         }
       }
 
+      if (e.key === '?') {
+        onOpenShortcuts()
+        return
+      }
+
       // Number keys 1-9 for art style
       const num = parseInt(e.key)
       if (num >= 1 && num <= 9 && num <= ART_STYLES.length) {
@@ -96,5 +102,5 @@ export function useKeyboardShortcuts({ onOpenExport }: Options) {
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [onOpenExport])
+  }, [onOpenExport, onOpenShortcuts])
 }
