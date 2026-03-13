@@ -34,12 +34,6 @@ export type TerminalCharset = '101010' | 'brackets' | 'dollar' | 'mixed' | 'pipe
 
 export type LetterSet = 'alphabet' | 'lowercase' | 'mixed' | 'symbols'
 
-export type WebGLOverlayType = 'lightning-rails' | 'atmospheric-folds' | 'network-dome' | 'ambient-starfield' | 'terrain-mesh' | 'topology-dots' | 'radial-burst'
-
-export type WebGLPlacement = 'behind' | 'above'
-
-export type WebGLAsciiEffect = 'separate' | 'ascii-fx'
-
 export interface Layer {
   id: string
   name: string
@@ -97,26 +91,10 @@ export interface Layer {
   mouseSpread: number
 }
 
-export interface WebGLLayer {
-  id: string
-  enabled: boolean
-  type: WebGLOverlayType
-  placement: WebGLPlacement
-  affectsAscii: WebGLAsciiEffect
-  opacity: number
-  intensity: number
-  lineSpread: number
-  pulseSpeed: number
-  mouseInfluence: number
-  filmGrain: number
-  color: string
-}
-
 export interface Preset {
   id: string
   name: string
   layer: Partial<Layer>
-  webglLayer?: Partial<WebGLLayer>
   backgroundColor?: string
   aspectRatio?: AspectRatio
   createdAt: string

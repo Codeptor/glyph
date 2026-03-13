@@ -1,7 +1,6 @@
 import { create } from 'zustand'
 import type {
   Layer,
-  WebGLLayer,
   AspectRatio,
   SourceMode,
   SourceQuality,
@@ -42,10 +41,6 @@ const BRAILLE_VARIANTS: BrailleVariant[] = ['standard', 'sparse', 'dense']
 const RETRO_DUOTONES: RetroDuotone[] = ['amber-classic', 'cyan-night', 'violet-haze', 'lime-pulse', 'mono-ice']
 const TERMINAL_CHARSETS: TerminalCharset[] = ['101010', 'brackets', 'dollar', 'mixed', 'pipes']
 const LETTER_SETS: LetterSet[] = ['alphabet', 'lowercase', 'mixed', 'symbols']
-// WebGL option arrays available for future randomization
-// const WEBGL_TYPES: WebGLOverlayType[] = ['lightning-rails', 'atmospheric-folds', 'network-dome', 'ambient-starfield', 'terrain-mesh', 'topology-dots', 'radial-burst']
-// const WEBGL_PLACEMENTS: WebGLPlacement[] = ['behind', 'above']
-// const WEBGL_ASCII_EFFECTS: WebGLAsciiEffect[] = ['separate', 'ascii-fx']
 
 function pick<T>(arr: readonly T[]): T {
   return arr[Math.floor(Math.random() * arr.length)]
@@ -114,23 +109,6 @@ export function createDefaultLayer(name = 'Layer 1'): Layer {
   }
 }
 
-export function createDefaultWebGLLayer(): WebGLLayer {
-  return {
-    id: uid(),
-    enabled: false,
-    type: 'lightning-rails',
-    placement: 'behind',
-    affectsAscii: 'separate',
-    opacity: 1,
-    intensity: 0.45,
-    lineSpread: 0.25,
-    pulseSpeed: 1,
-    mouseInfluence: 1,
-    filmGrain: 0.02,
-    color: '#99bbff',
-  }
-}
-
 interface AppState {
   sourceMode: SourceMode
   sourceQuality: SourceQuality
@@ -138,8 +116,6 @@ interface AppState {
 
   layers: Layer[]
   activeLayerIndex: number
-
-  webglLayer: WebGLLayer | null
 
   aspectRatio: AspectRatio
   backgroundColor: string
@@ -161,9 +137,6 @@ interface AppState {
   updateActiveLayer: (updates: Partial<Layer>) => void
   addLayer: () => void
   removeLayer: (index: number) => void
-
-  setWebGLLayer: (layer: WebGLLayer | null) => void
-  updateWebGLLayer: (updates: Partial<WebGLLayer>) => void
 
   setAspectRatio: (ratio: AspectRatio) => void
   setBackgroundColor: (color: string) => void
@@ -195,8 +168,6 @@ export const useStore = create<AppState>((set, get) => ({
 
   layers: [createDefaultLayer()],
   activeLayerIndex: 0,
-
-  webglLayer: null,
 
   aspectRatio: 'original',
   backgroundColor: '#000000',
@@ -241,14 +212,6 @@ export const useStore = create<AppState>((set, get) => ({
       const layers = state.layers.filter((_, i) => i !== index)
       const activeLayerIndex = Math.min(state.activeLayerIndex, layers.length - 1)
       return { layers, activeLayerIndex }
-    }),
-
-  setWebGLLayer: (layer) => set({ webglLayer: layer }),
-
-  updateWebGLLayer: (updates) =>
-    set((state) => {
-      if (!state.webglLayer) return state
-      return { webglLayer: { ...state.webglLayer, ...updates } }
     }),
 
   setAspectRatio: (ratio) => set({ aspectRatio: ratio }),
@@ -336,10 +299,6 @@ export const useStore = create<AppState>((set, get) => ({
       if (preset.layer) {
         get().updateActiveLayer(preset.layer)
       }
-      if (preset.webglLayer) {
-        const current = get().webglLayer ?? createDefaultWebGLLayer()
-        set({ webglLayer: { ...current, ...preset.webglLayer } })
-      }
       if (preset.backgroundColor) {
         set({ backgroundColor: preset.backgroundColor })
       }
@@ -361,7 +320,6 @@ export const useStore = create<AppState>((set, get) => ({
       id: uid(),
       name: activeLayer.name,
       layer: layerData,
-      webglLayer: state.webglLayer ?? undefined,
       backgroundColor: state.backgroundColor,
       aspectRatio: state.aspectRatio,
       createdAt: new Date().toISOString(),
@@ -379,7 +337,6 @@ export const useStore = create<AppState>((set, get) => ({
       id: uid(),
       name,
       layer: layerData,
-      webglLayer: state.webglLayer ?? undefined,
       backgroundColor: state.backgroundColor,
       aspectRatio: state.aspectRatio,
       createdAt: new Date().toISOString(),
@@ -394,10 +351,6 @@ export const useStore = create<AppState>((set, get) => ({
 
     if (preset.layer) {
       get().updateActiveLayer(preset.layer)
-    }
-    if (preset.webglLayer) {
-      const current = state.webglLayer ?? createDefaultWebGLLayer()
-      set({ webglLayer: { ...current, ...preset.webglLayer } })
     }
     if (preset.backgroundColor) {
       set({ backgroundColor: preset.backgroundColor })

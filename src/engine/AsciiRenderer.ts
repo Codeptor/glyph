@@ -1,0 +1,258 @@
+import type { Layer } from '@/types'
+import { pixelBrightness, adjustBrightness } from './brightness.ts'
+import { DITHER_FUNCTIONS } from './dither.ts'
+import { STYLE_RENDERERS } from './styles/index.ts'
+import type { RenderContext } from './styles/types.ts'
+import { FX_RENDERERS } from './fx.ts'
+
+export class AsciiRenderer {
+  private canvas: HTMLCanvasElement
+  private ctx: CanvasRenderingContext2D
+  private samplerCanvas: HTMLCanvasElement
+  private sampler: CanvasRenderingContext2D
+  private animId: number = 0
+  private startTime: number = 0
+  private frameCount: number = 0
+  private lastFpsTime: number = 0
+  private source: HTMLImageElement | HTMLVideoElement | null = null
+  private mouseX: number = -1
+  private mouseY: number = -1
+
+  constructor() {
+    this.canvas = document.createElement('canvas')
+    this.canvas.style.display = 'block'
+    const ctx = this.canvas.getContext('2d', { willReadFrequently: false })
+    if (!ctx) throw new Error('Failed to get canvas 2d context')
+    this.ctx = ctx
+
+    this.samplerCanvas = document.createElement('canvas')
+    const sampler = this.samplerCanvas.getContext('2d', { willReadFrequently: true })
+    if (!sampler) throw new Error('Failed to get sampler 2d context')
+    this.sampler = sampler
+  }
+
+  getCanvas(): HTMLCanvasElement {
+    return this.canvas
+  }
+
+  setSource(el: HTMLImageElement | HTMLVideoElement | null): void {
+    this.source = el
+  }
+
+  setMouse(x: number, y: number): void {
+    this.mouseX = x
+    this.mouseY = y
+  }
+
+  resize(w: number, h: number): void {
+    if (this.canvas.width !== w || this.canvas.height !== h) {
+      this.canvas.width = w
+      this.canvas.height = h
+    }
+  }
+
+  private getSourceDimensions(): { sw: number; sh: number } | null {
+    if (!this.source) return null
+    if (this.source instanceof HTMLImageElement) {
+      if (!this.source.naturalWidth) return null
+      return { sw: this.source.naturalWidth, sh: this.source.naturalHeight }
+    }
+    if (!this.source.videoWidth) return null
+    return { sw: this.source.videoWidth, sh: this.source.videoHeight }
+  }
+
+  computeCanvasSize(
+    aspectRatio: string,
+    containerW: number,
+    containerH: number,
+  ): { w: number; h: number } {
+    const dims = this.getSourceDimensions()
+    let ratio: number | null = null
+
+    switch (aspectRatio) {
+      case '16:9': ratio = 16 / 9; break
+      case '4:3': ratio = 4 / 3; break
+      case '1:1': ratio = 1; break
+      case '3:4': ratio = 3 / 4; break
+      case '9:16': ratio = 9 / 16; break
+      default:
+        if (dims) ratio = dims.sw / dims.sh
+        break
+    }
+
+    if (!ratio) return { w: containerW, h: containerH }
+
+    let w = containerW
+    let h = w / ratio
+    if (h > containerH) {
+      h = containerH
+      w = h * ratio
+    }
+    return { w: Math.round(w), h: Math.round(h) }
+  }
+
+  render(layers: Layer[], backgroundColor: string, _aspectRatio?: string): void {
+    const { width, height } = this.canvas
+    if (width === 0 || height === 0) return
+
+    this.ctx.fillStyle = backgroundColor
+    this.ctx.fillRect(0, 0, width, height)
+
+    const time = (performance.now() - this.startTime) / 1000
+    let fxLayer: Layer | null = null
+
+    for (const layer of layers) {
+      if (layer.opacity <= 0) continue
+      this.renderLayer(layer, width, height, time)
+      if (layer.fxPreset !== 'none') {
+        fxLayer = layer
+      }
+    }
+
+    // apply FX overlay from last layer that has an active preset
+    if (fxLayer) {
+      const fxFn = FX_RENDERERS[fxLayer.fxPreset]
+      if (fxFn) {
+        this.ctx.save()
+        fxFn(this.ctx, width, height, fxLayer, time)
+        this.ctx.restore()
+      }
+    }
+  }
+
+  private renderLayer(
+    layer: Layer,
+    width: number,
+    height: number,
+    time: number,
+  ): void {
+    const dims = this.getSourceDimensions()
+    if (!dims || !this.source) return
+
+    const cellWidth = layer.fontSize * layer.characterSpacing
+    const cellHeight = layer.fontSize * 1.2
+    const cols = Math.max(1, Math.floor(width / cellWidth))
+    const rows = Math.max(1, Math.floor(height / cellHeight))
+
+    // sample source into grid
+    this.samplerCanvas.width = cols
+    this.samplerCanvas.height = rows
+    this.sampler.drawImage(this.source, 0, 0, dims.sw, dims.sh, 0, 0, cols, rows)
+
+    let imageData: ImageData
+    try {
+      imageData = this.sampler.getImageData(0, 0, cols, rows)
+    } catch {
+      return
+    }
+    const data = imageData.data
+
+    const totalCells = cols * rows
+    const brightnessGrid = new Float32Array(totalCells)
+    const colorGrid: Array<[number, number, number]> = new Array(totalCells)
+
+    for (let i = 0; i < totalCells; i++) {
+      const off = i * 4
+      const r = data[off]
+      const g = data[off + 1]
+      const b = data[off + 2]
+
+      colorGrid[i] = [r, g, b]
+      let bri = pixelBrightness(r, g, b)
+      bri = adjustBrightness(bri, layer.brightness, layer.contrast)
+      brightnessGrid[i] = bri
+    }
+
+    // apply dithering
+    const ditherFn = DITHER_FUNCTIONS[layer.ditherAlgorithm]
+    const dithered = ditherFn(brightnessGrid, cols, rows, layer.ditherStrength)
+
+    const rc: RenderContext = {
+      ctx: this.ctx,
+      brightnessGrid: dithered,
+      colorGrid,
+      cols,
+      rows,
+      layer,
+      cellWidth,
+      cellHeight,
+      time,
+      mouseX: this.mouseX,
+      mouseY: this.mouseY,
+    }
+
+    const styleFn = STYLE_RENDERERS[layer.artStyle]
+    if (styleFn) {
+      this.ctx.save()
+      styleFn(rc)
+      this.ctx.restore()
+    }
+  }
+
+  startLoop(
+    layers: Layer[],
+    backgroundColor: string,
+    aspectRatio: string,
+    onFps: (fps: number) => void,
+  ): void {
+    this.stopLoop()
+    this.startTime = performance.now()
+    this.frameCount = 0
+    this.lastFpsTime = performance.now()
+
+    // store references for the closure — caller should call startLoop again on changes
+    let currentLayers = layers
+    let currentBg = backgroundColor
+    let currentAr = aspectRatio
+
+    const frame = (): void => {
+      this.render(currentLayers, currentBg, currentAr)
+      this.frameCount++
+
+      const now = performance.now()
+      const elapsed = now - this.lastFpsTime
+      if (elapsed >= 1000) {
+        onFps(Math.round((this.frameCount * 1000) / elapsed))
+        this.frameCount = 0
+        this.lastFpsTime = now
+      }
+
+      this.animId = requestAnimationFrame(frame)
+    }
+
+    // expose update method via closure
+    this._updateLoop = (l: Layer[], bg: string, ar: string) => {
+      currentLayers = l
+      currentBg = bg
+      currentAr = ar
+    }
+
+    this.animId = requestAnimationFrame(frame)
+  }
+
+  // internal reference for updating loop params without restarting
+  private _updateLoop: ((l: Layer[], bg: string, ar: string) => void) | null = null
+
+  updateLoop(layers: Layer[], backgroundColor: string, aspectRatio: string): void {
+    if (this._updateLoop) {
+      this._updateLoop(layers, backgroundColor, aspectRatio)
+    }
+  }
+
+  stopLoop(): void {
+    if (this.animId) {
+      cancelAnimationFrame(this.animId)
+      this.animId = 0
+    }
+    this._updateLoop = null
+  }
+
+  destroy(): void {
+    this.stopLoop()
+    this.source = null
+  }
+
+  toDataURL(): string {
+    return this.canvas.toDataURL('image/png')
+  }
+}
