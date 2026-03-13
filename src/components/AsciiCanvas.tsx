@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { useStore } from '@/store/useStore'
 import { AsciiRenderer } from '@/engine/AsciiRenderer'
+import { setGlobalRenderer } from '@/lib/rendererRef'
 import { LeftModeButtons } from './LeftModeButtons'
 import { LeftBottomBar } from './LeftBottomBar'
 import { ExportPopover } from './ExportPopover'
@@ -32,12 +33,14 @@ export function AsciiCanvas() {
   useEffect(() => {
     const renderer = new AsciiRenderer()
     rendererRef.current = renderer
+    setGlobalRenderer(renderer)
     const container = containerRef.current
     if (container) {
       container.appendChild(renderer.getCanvas())
     }
     return () => {
       renderer.destroy()
+      setGlobalRenderer(null)
       if (container) {
         const canvas = renderer.getCanvas()
         if (container.contains(canvas)) container.removeChild(canvas)
