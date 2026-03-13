@@ -3,7 +3,7 @@ import { pixelBrightness, adjustBrightness } from './brightness.ts'
 import { DITHER_FUNCTIONS } from './dither.ts'
 import { STYLE_RENDERERS } from './styles/index.ts'
 import type { RenderContext } from './styles/types.ts'
-import { FX_RENDERERS } from './fx.ts'
+import { PRE_RENDER_FX, POST_RENDER_FX } from './fx.ts'
 
 export class AsciiRenderer {
   private canvas: HTMLCanvasElement
@@ -99,22 +99,22 @@ export class AsciiRenderer {
     this.ctx.fillRect(0, 0, width, height)
 
     const time = (performance.now() - this.startTime) / 1000
-    let fxLayer: Layer | null = null
+    let postFxLayer: Layer | null = null
 
     for (const layer of layers) {
       if (layer.opacity <= 0) continue
       this.renderLayer(layer, width, height, time)
-      if (layer.fxPreset !== 'none') {
-        fxLayer = layer
+      if (layer.fxPreset !== 'none' && POST_RENDER_FX[layer.fxPreset]) {
+        postFxLayer = layer
       }
     }
 
-    // apply FX overlay from last layer that has an active preset
-    if (fxLayer) {
-      const fxFn = FX_RENDERERS[fxLayer.fxPreset]
+    // apply post-render FX overlay (glitch, crt, matrix-rain)
+    if (postFxLayer) {
+      const fxFn = POST_RENDER_FX[postFxLayer.fxPreset]
       if (fxFn) {
         this.ctx.save()
-        fxFn(this.ctx, width, height, fxLayer, time)
+        fxFn(this.ctx, width, height, postFxLayer, time)
         this.ctx.restore()
       }
     }
@@ -161,6 +161,12 @@ export class AsciiRenderer {
       let bri = pixelBrightness(r, g, b)
       bri = adjustBrightness(bri, layer.brightness, layer.contrast)
       brightnessGrid[i] = bri
+    }
+
+    // apply pre-render FX (noise, intervals, beam) to brightness grid
+    const preFx = PRE_RENDER_FX[layer.fxPreset]
+    if (preFx) {
+      preFx(brightnessGrid, cols, rows, layer, time)
     }
 
     // apply dithering

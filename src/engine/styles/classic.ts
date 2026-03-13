@@ -18,12 +18,21 @@ function getColor(
       const ib = invertColor ? 255 - bl : bl
       return `rgb(${ir},${ig},${ib})`
     }
-    case 'matrix':
-      return `rgba(0,255,65,${b})`
-    case 'amber':
-      return `rgba(255,176,0,${b})`
-    case 'custom':
-      return customColor
+    case 'matrix': {
+      const F = Math.max(0, Math.min(255, Math.round(b * 255) + 25))
+      return `rgb(${Math.floor(F * 0.2)},${F},${Math.floor(F * 0.3)})`
+    }
+    case 'amber': {
+      const F = Math.max(0, Math.min(255, Math.round(b * 255) + 20))
+      return `rgb(${F},${Math.floor(F * 0.7)},${Math.floor(F * 0.15)})`
+    }
+    case 'custom': {
+      const m = Math.round(b * 255)
+      const cr = parseInt(customColor.slice(1, 3), 16)
+      const cg = parseInt(customColor.slice(3, 5), 16)
+      const cb = parseInt(customColor.slice(5, 7), 16)
+      return `rgb(${Math.round(cr * m / 255)},${Math.round(cg * m / 255)},${Math.round(cb * m / 255)})`
+    }
     default: {
       const v = Math.round(b * 255)
       return `rgb(${v},${v},${v})`

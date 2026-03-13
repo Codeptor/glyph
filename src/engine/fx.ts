@@ -1,184 +1,187 @@
 import type { Layer, FXPreset, NoiseDirection } from '@/types'
 
-// simple hash-based noise (deterministic, fast)
-function hash(x: number, y: number): number {
-  const n = Math.sin(x * 127.1 + y * 311.7) * 43758.5453
-  return n - Math.floor(n)
+function clamp(v: number, min: number, max: number): number {
+  return Math.max(min, Math.min(max, v))
 }
 
-function smoothNoise(x: number, y: number): number {
-  const ix = Math.floor(x)
-  const iy = Math.floor(y)
-  const fx = x - ix
-  const fy = y - iy
-  const sx = fx * fx * (3 - 2 * fx)
-  const sy = fy * fy * (3 - 2 * fy)
+// --- Direction system (matching asc11.com source) ---
 
-  const a = hash(ix, iy)
-  const b = hash(ix + 1, iy)
-  const c = hash(ix, iy + 1)
-  const d = hash(ix + 1, iy + 1)
-
-  return a + (b - a) * sx + (c - a) * sy + (a - b - c + d) * sx * sy
+interface DirInfo {
+  dx: number; dy: number
+  perpX: number; perpY: number
+  primaryMin: number; primarySpan: number
+  secondaryMin: number; secondarySpan: number
 }
 
-function fbmNoise(x: number, y: number, octaves: number): number {
-  let v = 0
-  let amp = 0.5
-  let freq = 1
-  for (let i = 0; i < octaves; i++) {
-    v += smoothNoise(x * freq, y * freq) * amp
-    amp *= 0.5
-    freq *= 2
+function directionInfo(dir: NoiseDirection): DirInfo {
+  const vectors: Record<string, [number, number]> = {
+    up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0],
+    'top-left': [-0.707, -0.707], 'top-right': [0.707, -0.707],
+    'bottom-left': [-0.707, 0.707], 'bottom-right': [0.707, 0.707],
   }
-  return v
+  const [dx, dy] = vectors[dir] ?? [1, 0]
+  const perpX = -dy, perpY = dx
+  const primaryMin = Math.min(0, dx) + Math.min(0, dy)
+  const primarySpan = Math.max(1e-4, (Math.max(0, dx) + Math.max(0, dy)) - primaryMin)
+  const secondaryMin = Math.min(0, perpX) + Math.min(0, perpY)
+  const secondarySpan = Math.max(1e-4, (Math.max(0, perpX) + Math.max(0, perpY)) - secondaryMin)
+  return { dx, dy, perpX, perpY, primaryMin, primarySpan, secondaryMin, secondarySpan }
 }
 
-function directionVector(dir: NoiseDirection): [number, number] {
-  switch (dir) {
-    case 'up': return [0, -1]
-    case 'down': return [0, 1]
-    case 'left': return [-1, 0]
-    case 'right': return [1, 0]
-    case 'top-left': return [-0.707, -0.707]
-    case 'top-right': return [0.707, -0.707]
-    case 'bottom-left': return [-0.707, 0.707]
-    case 'bottom-right': return [0.707, 0.707]
-  }
+function cellNorms(
+  x: number, y: number,
+  cols: number, rows: number,
+  dir: DirInfo,
+): { primaryNorm: number; secondaryNorm: number } {
+  const u = x / Math.max(cols - 1, 1)
+  const v = y / Math.max(rows - 1, 1)
+  const primary = u * dir.dx + v * dir.dy
+  const secondary = u * dir.perpX + v * dir.perpY
+  const primaryNorm = clamp((primary - dir.primaryMin) / dir.primarySpan, 0, 1)
+  const secondaryNorm = clamp((secondary - dir.secondaryMin) / dir.secondarySpan, 0, 1)
+  return { primaryNorm, secondaryNorm }
 }
 
-function renderNoise(
-  ctx: CanvasRenderingContext2D,
-  width: number,
-  height: number,
+// --- Pre-render FX: modify brightness grid before character selection ---
+
+function applyNoise(
+  grid: Float32Array,
+  cols: number,
+  rows: number,
   layer: Layer,
   time: number,
 ): void {
-  const [dx, dy] = directionVector(layer.noiseDirection)
-  const scale = layer.noiseScale
-  const speed = layer.noiseSpeed
-  const strength = layer.fxStrength
-  const offsetX = dx * time * speed * 50
-  const offsetY = dy * time * speed * 50
+  const scale = clamp(layer.noiseScale, 4, 120)
+  const speed = clamp(layer.noiseSpeed, 0, 4)
+  const strength = clamp(layer.fxStrength, 0, 1)
+  const dir = directionInfo(layer.noiseDirection)
+  const maxDim = Math.max(cols, rows)
+  const z = time * speed * 2.4
 
-  const step = 4
-  for (let y = 0; y < height; y += step) {
-    for (let x = 0; x < width; x += step) {
-      const nx = (x + offsetX) / scale
-      const ny = (y + offsetY) / scale
-      const v = fbmNoise(nx, ny, 4) * strength
-      ctx.fillStyle = `rgba(255,255,255,${v * 0.15})`
-      ctx.fillRect(x, y, step, step)
+  for (let y = 0; y < rows; y++) {
+    for (let x = 0; x < cols; x++) {
+      const { primaryNorm, secondaryNorm } = cellNorms(x, y, cols, rows, dir)
+      const px = (primaryNorm * maxDim + 17.3) / scale
+      const py = (secondaryNorm * maxDim - 9.7) / scale
+      const wave1 = Math.sin(px + z) * Math.cos(py - z * 0.73)
+      const wave2 = Math.sin(primaryNorm * maxDim * 1.37 + secondaryNorm * maxDim * 2.11 + z * 6.2)
+      const amount = (16 + strength * 72) / 255
+      const i = y * cols + x
+      grid[i] = clamp(grid[i] + (wave1 * 0.65 + wave2 * 0.35) * amount, 0, 1)
     }
   }
 }
 
-function renderIntervals(
-  ctx: CanvasRenderingContext2D,
-  width: number,
-  height: number,
+function applyIntervals(
+  grid: Float32Array,
+  cols: number,
+  rows: number,
   layer: Layer,
   time: number,
 ): void {
-  const [dx, dy] = directionVector(layer.intervalDirection)
-  const spacing = layer.intervalSpacing
-  const speed = layer.intervalSpeed
-  const bandWidth = layer.intervalWidth
-  const strength = layer.fxStrength
-  const offset = time * speed * 60
+  const spacing = clamp(layer.intervalSpacing, 4, 64)
+  const speed = clamp(layer.intervalSpeed, 0, 4)
+  const bandWidth = clamp(layer.intervalWidth, 1, 8)
+  const strength = clamp(layer.fxStrength, 0, 1)
+  const dir = directionInfo(layer.intervalDirection)
+  const maxDim = Math.max(cols, rows)
+  const amount = strength * 88 / 255
 
-  const horizontal = Math.abs(dy) >= Math.abs(dx)
-
-  ctx.fillStyle = `rgba(255,255,255,${strength * 0.2})`
-
-  if (horizontal) {
-    for (let y = 0; y < height + spacing; y += spacing) {
-      const yy = ((y + offset * dy) % (height + spacing + spacing)) - spacing
-      ctx.fillRect(0, yy, width, bandWidth)
-    }
-  } else {
-    for (let x = 0; x < width + spacing; x += spacing) {
-      const xx = ((x + offset * dx) % (width + spacing + spacing)) - spacing
-      ctx.fillRect(xx, 0, bandWidth, height)
+  for (let y = 0; y < rows; y++) {
+    for (let x = 0; x < cols; x++) {
+      const { primaryNorm, secondaryNorm } = cellNorms(x, y, cols, rows, dir)
+      const pPos = primaryNorm * maxDim
+      const sPos = secondaryNorm * maxDim
+      const offset = ((time * speed * spacing * 1.7) % spacing + spacing) % spacing
+      const dist = (pPos + offset) % spacing
+      const bandDist = Math.min(dist, spacing - dist)
+      const bandFactor = 1 - clamp(bandDist / bandWidth, 0, 1)
+      const wave = Math.sin(pPos / spacing * Math.PI * 2 + time * speed * 1.8 + sPos / Math.max(maxDim, 1) * 1.1)
+      const i = y * cols + x
+      grid[i] = clamp(grid[i] + bandFactor * amount * 0.85 + wave * amount * 0.32, 0, 1)
     }
   }
 }
 
-function renderBeam(
-  ctx: CanvasRenderingContext2D,
-  width: number,
-  height: number,
+function applyBeam(
+  grid: Float32Array,
+  cols: number,
+  rows: number,
   layer: Layer,
   time: number,
 ): void {
-  const [dx, dy] = directionVector(layer.beamDirection)
-  const strength = layer.fxStrength
-  const period = 3 // seconds per sweep
-  const t = (time % period) / period
+  const strength = clamp(layer.fxStrength, 0, 1)
+  const period = 0.45 + strength * 2.2
+  const width = 0.08 + strength * 0.22
+  const dir = directionInfo(layer.beamDirection)
 
-  const horizontal = Math.abs(dy) >= Math.abs(dx)
-
-  if (horizontal) {
-    const y = t * height
-    const grad = ctx.createLinearGradient(0, y - 40, 0, y + 40)
-    grad.addColorStop(0, 'rgba(255,255,255,0)')
-    grad.addColorStop(0.5, `rgba(255,255,255,${strength * 0.5})`)
-    grad.addColorStop(1, 'rgba(255,255,255,0)')
-    ctx.fillStyle = grad
-    ctx.fillRect(0, y - 40, width, 80)
-  } else {
-    const x = t * width
-    const grad = ctx.createLinearGradient(x - 40, 0, x + 40, 0)
-    grad.addColorStop(0, 'rgba(255,255,255,0)')
-    grad.addColorStop(0.5, `rgba(255,255,255,${strength * 0.5})`)
-    grad.addColorStop(1, 'rgba(255,255,255,0)')
-    ctx.fillStyle = grad
-    ctx.fillRect(x - 40, 0, 80, height)
-  }
-}
-
-function renderGlitch(
-  ctx: CanvasRenderingContext2D,
-  width: number,
-  height: number,
-  layer: Layer,
-  time: number,
-): void {
-  const strength = layer.fxStrength
-  const seed = Math.floor(time * 8)
-  const numSlices = Math.floor(3 + strength * 12)
-  const horizontal = layer.glitchDirection === 'left' || layer.glitchDirection === 'right' ||
-    layer.glitchDirection === 'up' || layer.glitchDirection === 'down'
-
-  for (let i = 0; i < numSlices; i++) {
-    const r = hash(seed + i, i * 7)
-    if (r > strength) continue
-
-    if (horizontal) {
-      const y = Math.floor(hash(seed + i, i * 3) * height)
-      const h = Math.floor(2 + hash(seed + i, i * 5) * 15)
-      const shift = Math.floor((hash(seed + i, i * 11) - 0.5) * width * strength * 0.15)
-
-      try {
-        const slice = ctx.getImageData(0, y, width, h)
-        ctx.putImageData(slice, shift, y)
-      } catch {
-        // getImageData can fail on tainted canvases
-      }
-    } else {
-      const x = Math.floor(hash(seed + i, i * 3) * width)
-      const w = Math.floor(2 + hash(seed + i, i * 5) * 15)
-      const shift = Math.floor((hash(seed + i, i * 11) - 0.5) * height * strength * 0.15)
-
-      try {
-        const slice = ctx.getImageData(x, 0, w, height)
-        ctx.putImageData(slice, x, shift)
-      } catch {
-        // pass
-      }
+  for (let y = 0; y < rows; y++) {
+    for (let x = 0; x < cols; x++) {
+      const { primaryNorm } = cellNorms(x, y, cols, rows, dir)
+      const beamPos = ((time * period) % 1.2 + 1.2) % 1.2 - 0.1
+      const dist = Math.abs(primaryNorm - beamPos)
+      const factor = Math.max(0, 1 - dist / width)
+      const amount = (34 + strength * 120) / 255
+      const i = y * cols + x
+      grid[i] = clamp(grid[i] + factor * amount, 0, 1)
     }
   }
 }
+
+function applyGlitch(
+  grid: Float32Array,
+  cols: number,
+  rows: number,
+  layer: Layer,
+  time: number,
+): void {
+  const strength = clamp(layer.fxStrength, 0, 1)
+  const dir = directionInfo(layer.glitchDirection)
+  const maxDim = Math.max(cols, rows)
+  const laneSize = 2 + Math.floor((1 - strength) * 3)
+
+  for (let y = 0; y < rows; y++) {
+    for (let x = 0; x < cols; x++) {
+      const { primaryNorm, secondaryNorm } = cellNorms(x, y, cols, rows, dir)
+      const sPos = secondaryNorm * maxDim
+      const lane = Math.floor(sPos / laneSize)
+      const seed = Math.floor(time * (0.75 + strength * 1.35))
+      const active = (Math.sin((lane + 1) * 19.73 + seed * 7.11) + 1) * 0.5 > 0.74 ? 1 : 0
+      if (!active) continue
+
+      const freq = 0.12 + (Math.sin((lane + 1) * 6.37) + 1) * 0.5 * (0.22 + strength * 0.34)
+      const phase = (Math.sin((lane + 1) * 2.91) + 1) * 0.5
+      const t = (time * freq + phase) % 1
+      const glitchWidth = 0.12 + strength * 0.28
+      const offset = (primaryNorm - t + 1) % 1
+      const factor = Math.max(0, 1 - offset / glitchWidth)
+      const wave = Math.max(0, Math.sin(offset * Math.PI))
+      const amount = (strength * 88) / 255
+      const i = y * cols + x
+      grid[i] = clamp(grid[i] + (factor * 0.6 + wave * 0.4) * active * amount, 0, 1)
+    }
+  }
+}
+
+type PreRenderFxFn = (
+  grid: Float32Array,
+  cols: number,
+  rows: number,
+  layer: Layer,
+  time: number,
+) => void
+
+export const PRE_RENDER_FX: Record<FXPreset, PreRenderFxFn | null> = {
+  none: null,
+  noise: applyNoise,
+  intervals: applyIntervals,
+  beam: applyBeam,
+  glitch: applyGlitch,
+  crt: null,
+  'matrix-rain': null,
+}
+
+// --- Post-render FX: overlay on canvas after character rendering ---
 
 function renderCrt(
   ctx: CanvasRenderingContext2D,
@@ -187,7 +190,7 @@ function renderCrt(
   layer: Layer,
   time: number,
 ): void {
-  const strength = layer.fxStrength
+  const strength = clamp(layer.fxStrength, 0, 1)
 
   // scanlines
   ctx.fillStyle = `rgba(0,0,0,${strength * 0.15})`
@@ -195,7 +198,7 @@ function renderCrt(
     ctx.fillRect(0, y, width, 1)
   }
 
-  // vignette overlay
+  // vignette
   const grad = ctx.createRadialGradient(
     width / 2, height / 2, Math.min(width, height) * 0.3,
     width / 2, height / 2, Math.max(width, height) * 0.7,
@@ -213,6 +216,11 @@ function renderCrt(
   }
 }
 
+function hashF(x: number, y: number): number {
+  const n = Math.sin(x * 127.1 + y * 311.7) * 43758.5453
+  return n - Math.floor(n)
+}
+
 function renderMatrixRain(
   ctx: CanvasRenderingContext2D,
   width: number,
@@ -222,32 +230,37 @@ function renderMatrixRain(
 ): void {
   const scale = layer.matrixScale
   const speed = layer.matrixSpeed
-  const strength = layer.fxStrength
-  const [_dx, dy] = directionVector(layer.matrixDirection)
+  const strength = clamp(layer.fxStrength, 0, 1)
+  const dirVectors: Record<string, [number, number]> = {
+    up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0],
+    'top-left': [-0.707, -0.707], 'top-right': [0.707, -0.707],
+    'bottom-left': [-0.707, 0.707], 'bottom-right': [0.707, 0.707],
+  }
+  const [_dx, dy] = dirVectors[layer.matrixDirection] ?? [0, 1]
   const falling = dy >= 0
 
-  const cols = Math.ceil(width / scale)
-  const rows = Math.ceil(height / scale)
+  const mCols = Math.ceil(width / scale)
+  const mRows = Math.ceil(height / scale)
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789@#$%&*'
 
   ctx.font = `${scale * 0.9}px monospace`
   ctx.textBaseline = 'top'
   ctx.textAlign = 'center'
 
-  for (let c = 0; c < cols; c++) {
-    const colSpeed = speed * (0.5 + hash(c, 0) * 1.5)
-    const offset = hash(c, 1) * rows
-    const dropLen = 5 + Math.floor(hash(c, 2) * 15)
+  for (let c = 0; c < mCols; c++) {
+    const colSpeed = speed * (0.5 + hashF(c, 0) * 1.5)
+    const offset = hashF(c, 1) * mRows
+    const dropLen = 5 + Math.floor(hashF(c, 2) * 15)
 
-    const headPos = ((time * colSpeed * 20 + offset) % (rows + dropLen))
-    const headRow = falling ? headPos : rows - headPos
+    const headPos = ((time * colSpeed * 20 + offset) % (mRows + dropLen))
+    const headRow = falling ? headPos : mRows - headPos
 
     for (let trail = 0; trail < dropLen; trail++) {
       const row = Math.floor(falling ? headRow - trail : headRow + trail)
-      if (row < 0 || row >= rows) continue
+      if (row < 0 || row >= mRows) continue
 
       const alpha = ((dropLen - trail) / dropLen) * strength * 0.6
-      const charIdx = Math.floor(hash(c * 31 + row, Math.floor(time * 5)) * chars.length)
+      const charIdx = Math.floor(hashF(c * 31 + row, Math.floor(time * 5)) * chars.length)
       const ch = chars[charIdx]
 
       ctx.fillStyle = `rgba(0,255,65,${alpha})`
@@ -256,7 +269,7 @@ function renderMatrixRain(
   }
 }
 
-type FxFn = (
+type PostRenderFxFn = (
   ctx: CanvasRenderingContext2D,
   width: number,
   height: number,
@@ -264,12 +277,12 @@ type FxFn = (
   time: number,
 ) => void
 
-export const FX_RENDERERS: Record<FXPreset, FxFn | null> = {
+export const POST_RENDER_FX: Record<FXPreset, PostRenderFxFn | null> = {
   none: null,
-  noise: renderNoise,
-  intervals: renderIntervals,
-  beam: renderBeam,
-  glitch: renderGlitch,
+  noise: null,
+  intervals: null,
+  beam: null,
+  glitch: null,
   crt: renderCrt,
   'matrix-rain': renderMatrixRain,
 }

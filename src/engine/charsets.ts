@@ -1,17 +1,25 @@
-import type { CharacterSet, TerminalCharset } from '@/types'
+import type { CharacterSet, BrailleVariant, TerminalCharset } from '@/types'
 
 const CHARSET_MAP: Record<CharacterSet, string> = {
-  standard: '@%#*+=-:. ',
-  blocks: '\u2588\u2593\u2592\u2591 ',
+  standard: ' .:-=+*#%@',
+  blocks: ' ░▒▓█',
   detailed:
-    '$@B%8&WM#*oahkbdpqwmZO0QLCJUYXzcvunxrjft/\\|()1{}[]?-_+~<>i!lI;:,"^`\'. ',
-  minimal: '\u00b7\u2591\u2588',
-  binary: '01',
+    " .'`^\",:;Il!i><~+_-?][}{1)(|\\/tfjrxnuvczXYUJCLQ0OZmwqpdbkhao*#MW&8%B@$",
+  minimal: ' ·░█',
+  binary: ' 01',
   custom: '',
   'letters-upper': 'ABCDEFGHIJKLMNOPQRSTUVWXYZ',
   'letters-lower': 'abcdefghijklmnopqrstuvwxyz',
-  'letters-mixed': 'AaBbCcDdEeFfGgHhIiJjKkLlMm',
-  'letters-symbols': '@#$%&*+=!?<>{}[]()',
+  'letters-mixed': 'AaBbCcDdEeFfGgHhIiJjKkLlMmNnOoPpQqRrSsTtUuVvWwXxYyZz',
+  'letters-symbols': '@#$%&*+=-<>~',
+}
+
+const BRAILLE_CHARSET = ' ⠁⠂⠃⠄⠅⠆⠇⠈⠉⠊⠋⠌⠍⠎⠏⠐⠑⠒⠓⠔⠕⠖⠗⠘⠙⠚⠛⠜⠝⠞⠟⠠⠡⠢⠣⠤⠥⠦⠧⠨⠩⠪⠫⠬⠭⠮⠯⠰⠱⠲⠳⠴⠵⠶⠷⠸⠹⠺⠻⠼⠽⠾⠿'
+
+const BRAILLE_VARIANT_MAP: Record<BrailleVariant, string> = {
+  standard: BRAILLE_CHARSET,
+  sparse: ' ⠁⠂⠄⠈⠐⠠⡀⢀⣀⣿',
+  dense: ' ⠃⠇⠏⠟⠿',
 }
 
 const TERMINAL_CHARSET_MAP: Record<TerminalCharset, string> = {
@@ -31,10 +39,13 @@ export function getTerminalCharset(set: TerminalCharset): string {
   return TERMINAL_CHARSET_MAP[set]
 }
 
+export function getBrailleCharset(variant: BrailleVariant): string {
+  return BRAILLE_VARIANT_MAP[variant]
+}
+
 export function getCharForBrightness(brightness: number, chars: string): string {
   if (chars.length === 0) return ' '
   const clamped = Math.max(0, Math.min(1, brightness))
-  // invert: bright pixels → dense chars (visible on dark bg), dark → sparse/space (hidden)
-  const index = Math.floor((1 - clamped) * (chars.length - 1))
+  const index = Math.floor(clamped * (chars.length - 1))
   return chars[index]
 }
