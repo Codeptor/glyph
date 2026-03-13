@@ -1,17 +1,12 @@
 .controls-panel {
   border: 1px solid var(--border);
   padding: 0.8rem;
-  display: grid;
-  grid-template-rows: auto 1fr;
-  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
   gap: 0.6rem;
-  flex: 1;
-  min-height: 0;
 }
 
 .controls-wrap {
-  min-height: 0;
-  overflow: hidden;
   display: flex;
   flex-direction: column;
   gap: 0.6rem;
