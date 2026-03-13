@@ -117,6 +117,8 @@ export function createDefaultLayer(name = 'Layer 1'): Layer {
   }
 }
 
+const UNDO_LIMIT = 50
+
 interface AppState {
   sourceMode: SourceMode
   sourceQuality: SourceQuality
@@ -136,6 +138,10 @@ interface AppState {
   galleryAssets: GalleryAsset[]
   templateAssets: TemplateAsset[]
   presets: Preset[]
+
+  // undo/redo
+  _undoStack: Layer[][]
+  _redoStack: Layer[][]
 
   setSourceMode: (mode: SourceMode) => void
   setSourceQuality: (quality: SourceQuality) => void
@@ -168,6 +174,11 @@ interface AppState {
   loadPreset: (id: string) => void
   deletePreset: (id: string) => void
 
+  undo: () => void
+  redo: () => void
+  canUndo: () => boolean
+  canRedo: () => boolean
+
   initFromDB: () => Promise<void>
 }
 
@@ -191,6 +202,9 @@ export const useStore = create<AppState>((set, get) => ({
   templateAssets: [],
   presets: [],
 
+  _undoStack: [],
+  _redoStack: [],
+
   setSourceMode: (mode) => set({ sourceMode: mode }),
   setSourceQuality: (quality) => set({ sourceQuality: quality }),
   setSourceImage: (image) => set({ sourceImage: image }),
@@ -202,8 +216,10 @@ export const useStore = create<AppState>((set, get) => ({
       const layers = [...state.layers]
       const idx = state.activeLayerIndex
       if (idx < 0 || idx >= layers.length) return state
+      const undoStack = [...state._undoStack, state.layers.map((l) => ({ ...l }))]
+      if (undoStack.length > UNDO_LIMIT) undoStack.shift()
       layers[idx] = { ...layers[idx], ...updates }
-      return { layers }
+      return { layers, _undoStack: undoStack, _redoStack: [] }
     }),
 
   addLayer: () =>
@@ -382,6 +398,27 @@ export const useStore = create<AppState>((set, get) => ({
     }))
     deletePresetItem(id)
   },
+
+  undo: () =>
+    set((state) => {
+      if (state._undoStack.length === 0) return state
+      const undoStack = [...state._undoStack]
+      const prev = undoStack.pop()!
+      const redoStack = [...state._redoStack, state.layers.map((l) => ({ ...l }))]
+      return { layers: prev, _undoStack: undoStack, _redoStack: redoStack }
+    }),
+
+  redo: () =>
+    set((state) => {
+      if (state._redoStack.length === 0) return state
+      const redoStack = [...state._redoStack]
+      const next = redoStack.pop()!
+      const undoStack = [...state._undoStack, state.layers.map((l) => ({ ...l }))]
+      return { layers: next, _undoStack: undoStack, _redoStack: redoStack }
+    }),
+
+  canUndo: () => get()._undoStack.length > 0,
+  canRedo: () => get()._redoStack.length > 0,
 
   initFromDB: async () => {
     const [gallery, presets] = await Promise.all([loadGallery(), loadPresets()])
