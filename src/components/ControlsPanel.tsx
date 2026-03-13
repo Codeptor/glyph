@@ -3,7 +3,7 @@ import { SliderControl } from './SliderControl'
 import type {
   ArtStyle, CharacterSet, DitherAlgorithm, FontFamily, ColorMode,
   FXPreset, NoiseDirection, MouseInteraction, HalftoneShape,
-  BrailleVariant, RetroDuotone, TerminalCharset, LetterSet,
+  BrailleVariant, RetroDuotone, TerminalCharset,
 } from '@/types'
 
 const ART_STYLES: { value: ArtStyle; label: string }[] = [
@@ -69,7 +69,6 @@ const HALFTONE_SHAPES: HalftoneShape[] = ['circle', 'square', 'diamond', 'pentag
 const BRAILLE_VARIANTS: BrailleVariant[] = ['standard', 'sparse', 'dense']
 const RETRO_DUOTONES: RetroDuotone[] = ['amber-classic', 'cyan-night', 'violet-haze', 'lime-pulse', 'mono-ice']
 const TERMINAL_CHARSETS: TerminalCharset[] = ['101010', 'brackets', 'dollar', 'mixed', 'pipes']
-const LETTER_SETS: LetterSet[] = ['alphabet', 'lowercase', 'mixed', 'symbols']
 const MOUSE_INTERACTIONS: MouseInteraction[] = ['attract', 'push']
 
 function getDirectionField(preset: FXPreset): string | null {

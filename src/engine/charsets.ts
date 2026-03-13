@@ -34,6 +34,7 @@ export function getTerminalCharset(set: TerminalCharset): string {
 export function getCharForBrightness(brightness: number, chars: string): string {
   if (chars.length === 0) return ' '
   const clamped = Math.max(0, Math.min(1, brightness))
-  const index = Math.floor(clamped * (chars.length - 1))
+  // invert: bright pixels → dense chars (visible on dark bg), dark → sparse/space (hidden)
+  const index = Math.floor((1 - clamped) * (chars.length - 1))
   return chars[index]
 }
