@@ -194,8 +194,7 @@ function renderCrt(
   const strength = clamp(layer.fxStrength, 0, 1)
   if (strength <= 0.001) return
 
-  // --- Scanlines with brightness-dependent visibility ---
-  // Gaussian-inspired scanline profile: darker lines between rows
+  // --- Scanlines ---
   const scanlineSpacing = 3
   const scanlineAlpha = strength * 0.18
   ctx.fillStyle = `rgba(0,0,0,${scanlineAlpha})`

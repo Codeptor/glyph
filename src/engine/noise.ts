@@ -3,7 +3,8 @@ const G2 = (3 - Math.sqrt(3)) / 6
 const F3 = 1 / 3
 const G3 = 1 / 6
 
-const grad2 = new Float64Array([1,1, -1,1, 1,-1, -1,-1, 1,0, -1,0, 0,1, 0,-1])
+// 12 gradient vectors for 3D simplex noise (Gustavson's Java reference)
+// 2D noise reuses these, taking only x,y components via permMod12
 const grad3 = new Float64Array([
   1,1,0, -1,1,0, 1,-1,0, -1,-1,0,
   1,0,1, -1,0,1, 1,0,-1, -1,0,-1,
@@ -32,10 +33,10 @@ const p = new Uint8Array([
 
 // Double the permutation table for overflow-free access
 const perm = new Uint8Array(512)
-const permMod8 = new Uint8Array(512)
+const permMod12 = new Uint8Array(512)
 for (let i = 0; i < 512; i++) {
   perm[i] = p[i & 255]
-  permMod8[i] = perm[i] % 8
+  permMod12[i] = perm[i] % 12
 }
 
 export function simplex2(x: number, y: number): number {
@@ -64,23 +65,23 @@ export function simplex2(x: number, y: number): number {
 
   let t0 = 0.5 - x0 * x0 - y0 * y0
   if (t0 >= 0) {
-    const gi0 = permMod8[ii + perm[jj]] * 2
+    const gi0 = permMod12[ii + perm[jj]] * 3
     t0 *= t0
-    n0 = t0 * t0 * (grad2[gi0] * x0 + grad2[gi0 + 1] * y0)
+    n0 = t0 * t0 * (grad3[gi0] * x0 + grad3[gi0 + 1] * y0)
   }
 
   let t1 = 0.5 - x1 * x1 - y1 * y1
   if (t1 >= 0) {
-    const gi1 = permMod8[ii + i1 + perm[jj + j1]] * 2
+    const gi1 = permMod12[ii + i1 + perm[jj + j1]] * 3
     t1 *= t1
-    n1 = t1 * t1 * (grad2[gi1] * x1 + grad2[gi1 + 1] * y1)
+    n1 = t1 * t1 * (grad3[gi1] * x1 + grad3[gi1 + 1] * y1)
   }
 
   let t2 = 0.5 - x2 * x2 - y2 * y2
   if (t2 >= 0) {
-    const gi2 = permMod8[ii + 1 + perm[jj + 1]] * 2
+    const gi2 = permMod12[ii + 1 + perm[jj + 1]] * 3
     t2 *= t2
-    n2 = t2 * t2 * (grad2[gi2] * x2 + grad2[gi2 + 1] * y2)
+    n2 = t2 * t2 * (grad3[gi2] * x2 + grad3[gi2 + 1] * y2)
   }
 
   return 70.0 * (n0 + n1 + n2)
