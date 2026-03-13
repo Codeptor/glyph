@@ -1,7 +1,15 @@
 {
-  "name": "asc11-temp",
-  "private": true,
-  "version": "0.0.0",
+  "name": "glyph",
+  "version": "1.0.0",
+  "description": "Real-time ASCII art generator with 9 art styles, 8 dithering algorithms, and animated FX. Browser-based, no backend.",
+  "author": "Codeptor",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Codeptor/glyph.git"
+  },
+  "homepage": "https://github.com/Codeptor/glyph",
+  "bugs": "https://github.com/Codeptor/glyph/issues",
   "type": "module",
   "scripts": {
     "dev": "vite",
