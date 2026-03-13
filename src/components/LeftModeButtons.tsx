@@ -1,4 +1,5 @@
 import { useStore } from '@/store/useStore'
+import { Button } from '@/components/ui/button'
 import type { LeftPanel } from '@/types'
 
 const PANELS: { value: NonNullable<LeftPanel>; label: string }[] = [
@@ -14,23 +15,27 @@ export function LeftModeButtons() {
   const setThemeMode = useStore((s) => s.setThemeMode)
 
   return (
-    <div className="left-mode-buttons">
+    <div className="absolute top-3 left-3 z-10 flex items-center gap-1">
       {PANELS.map((p) => (
-        <button
+        <Button
           key={p.value}
-          className={`left-mode-button${leftPanel === p.value ? ' is-active' : ''}`}
+          variant={leftPanel === p.value ? 'default' : 'ghost'}
+          size="xs"
+          className="text-[10px] uppercase tracking-wider cursor-crosshair"
           onClick={() => setLeftPanel(leftPanel === p.value ? null : p.value)}
         >
           {p.label}
-        </button>
+        </Button>
       ))}
-      <button
-        className="left-mode-theme-toggle"
+      <Button
+        variant="ghost"
+        size="xs"
+        className="cursor-crosshair"
         onClick={() => setThemeMode(themeMode === 'dark' ? 'light' : 'dark')}
         title={`Switch to ${themeMode === 'dark' ? 'light' : 'dark'} mode`}
       >
         {themeMode === 'dark' ? '\u2600' : '\u263E'}
-      </button>
+      </Button>
     </div>
   )
 }

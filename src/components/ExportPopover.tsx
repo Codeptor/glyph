@@ -1,5 +1,11 @@
 import { useState } from 'react'
 import { useStore } from '@/store/useStore'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Button } from '@/components/ui/button'
+import { Textarea } from '@/components/ui/textarea'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 
 interface Props {
   onClose: () => void
@@ -29,68 +35,72 @@ export function ExportPopover({ onClose }: Props) {
     }
   }
 
-  const tabs: { value: ExportTab; label: string }[] = [
-    { value: 'json', label: 'JSON' },
-    { value: 'image', label: 'Image' },
-    { value: 'save', label: 'Save' },
-  ]
-
   return (
-    <div className="export-popover">
-      <div className="export-popover-head">
-        <span>Export</span>
-        <button className="export-close" onClick={onClose}>Close</button>
-      </div>
-      <div className="export-popover-tabs">
-        {tabs.map((t) => (
-          <button
-            key={t.value}
-            className={tab === t.value ? 'active' : ''}
-            onClick={() => setTab(t.value)}
-          >
-            {t.label}
-          </button>
-        ))}
-      </div>
+    <Dialog open onOpenChange={(open) => { if (!open) onClose() }}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle className="text-sm uppercase tracking-wider">Export</DialogTitle>
+        </DialogHeader>
 
-      {tab === 'json' && (
-        <>
-          <textarea
-            className="export-code-block"
-            value={json}
-            readOnly
-          />
-          <div className="export-popover-actions">
-            <button className="export-copy" onClick={handleCopy}>
-              {copied ? 'Copied!' : 'Copy JSON'}
-            </button>
-          </div>
-        </>
-      )}
+        <Tabs value={tab} onValueChange={(v) => setTab(v as ExportTab)}>
+          <TabsList className="w-full">
+            <TabsTrigger value="json" className="flex-1 text-xs cursor-crosshair">JSON</TabsTrigger>
+            <TabsTrigger value="image" className="flex-1 text-xs cursor-crosshair">Image</TabsTrigger>
+            <TabsTrigger value="save" className="flex-1 text-xs cursor-crosshair">Save</TabsTrigger>
+          </TabsList>
 
-      {tab === 'image' && (
-        <div className="export-popover-note">
-          Image export — use the canvas download button to save the current frame as PNG.
-        </div>
-      )}
-
-      {tab === 'save' && (
-        <div style={{ padding: '0.6rem 0.8rem' }}>
-          <div className="save-name-row">
-            <input
-              value={saveName}
-              onChange={(e) => setSaveName(e.target.value)}
-              placeholder="Preset name..."
-              onKeyDown={(e) => e.key === 'Enter' && handleSave()}
+          <TabsContent value="json" className="space-y-3 mt-3">
+            <Textarea
+              value={json}
+              readOnly
+              className="h-48 font-mono text-[10px] resize-none bg-[var(--bg-surface)]"
             />
-            <button onClick={handleSave}>Save</button>
-          </div>
-        </div>
-      )}
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full cursor-crosshair"
+              onClick={handleCopy}
+            >
+              {copied ? 'Copied!' : 'Copy JSON'}
+            </Button>
+          </TabsContent>
 
-      <div className="export-popover-disclaimer">
-        All data is stored locally in your browser.
-      </div>
-    </div>
+          <TabsContent value="image" className="mt-3">
+            <div className="rounded-md bg-[var(--bg-surface)] px-4 py-6 text-center text-xs text-muted-foreground">
+              Image export -- use the canvas download button to save the current frame as PNG.
+            </div>
+          </TabsContent>
+
+          <TabsContent value="save" className="space-y-3 mt-3">
+            <div className="space-y-2">
+              <Label className="text-xs uppercase tracking-wider text-muted-foreground">
+                Preset Name
+              </Label>
+              <div className="flex gap-2">
+                <Input
+                  value={saveName}
+                  onChange={(e) => setSaveName(e.target.value)}
+                  placeholder="Preset name..."
+                  className="flex-1 text-xs cursor-crosshair"
+                  onKeyDown={(e) => e.key === 'Enter' && handleSave()}
+                />
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="cursor-crosshair"
+                  onClick={handleSave}
+                >
+                  Save
+                </Button>
+              </div>
+            </div>
+          </TabsContent>
+        </Tabs>
+
+        <div className="text-[10px] text-muted-foreground/50 text-center">
+          All data is stored locally in your browser.
+        </div>
+      </DialogContent>
+    </Dialog>
   )
 }

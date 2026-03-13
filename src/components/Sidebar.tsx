@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { ScrollArea } from '@/components/ui/scroll-area'
 import { SidebarHeader } from './SidebarHeader'
 import { SourceUpload } from './SourceUpload'
 import { LayerTabs } from './LayerTabs'
@@ -12,15 +13,15 @@ export function Sidebar() {
   const [showPresets, setShowPresets] = useState(false)
 
   return (
-    <aside className="ui-layer">
-      <div style={{ overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: 0 }}>
+    <aside className="relative flex w-[var(--sidebar-width)] min-w-[var(--sidebar-width)] flex-col border-l border-border bg-background z-[var(--z-sidebar)]">
+      <ScrollArea className="flex-1">
         <SidebarHeader />
         <SourceUpload />
-        <div style={{ padding: '0.6rem 1.2rem' }}>
+        <div className="px-4 py-2">
           <LayerTabs />
         </div>
         <ControlsPanel />
-      </div>
+      </ScrollArea>
       <FooterBar
         onExport={() => setShowExport(!showExport)}
         onPresets={() => setShowPresets(!showPresets)}

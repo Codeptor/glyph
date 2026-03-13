@@ -1,4 +1,5 @@
 import { useStore } from '@/store/useStore'
+import { Button } from '@/components/ui/button'
 
 interface Props {
   onExport: () => void
@@ -26,19 +27,40 @@ export function FooterBar({ onExport, onPresets }: Props) {
   ]
 
   return (
-    <div className="app-footer">
-      <div className="footer-links">
+    <div className="flex flex-col gap-1 border-t border-border px-3 py-2">
+      <div className="flex flex-wrap gap-x-2 gap-y-0.5">
         {items.map((item) => (
-          <span key={item.label} className="footer-link" style={{ cursor: 'default' }}>
-            <span style={{ opacity: 0.5 }}>{item.label}</span>{' '}
-            <span>{item.value}</span>
+          <span key={item.label} className="text-[9px] font-mono whitespace-nowrap">
+            <span className="text-muted-foreground/50">{item.label}</span>{' '}
+            <span className="text-muted-foreground">{item.value}</span>
           </span>
         ))}
       </div>
-      <div className="footer-links">
-        <button className="footer-link" onClick={onPresets}>PRESETS</button>
-        <button className="footer-link" onClick={randomizeActiveLayer}>RANDOM</button>
-        <button className="footer-link" onClick={onExport}>EXPORT</button>
+      <div className="flex items-center gap-1">
+        <Button
+          variant="ghost"
+          size="xs"
+          className="text-[10px] uppercase tracking-wider text-muted-foreground hover:text-foreground cursor-crosshair"
+          onClick={onPresets}
+        >
+          Presets
+        </Button>
+        <Button
+          variant="ghost"
+          size="xs"
+          className="text-[10px] uppercase tracking-wider text-muted-foreground hover:text-foreground cursor-crosshair"
+          onClick={randomizeActiveLayer}
+        >
+          Random
+        </Button>
+        <Button
+          variant="ghost"
+          size="xs"
+          className="text-[10px] uppercase tracking-wider text-muted-foreground hover:text-foreground cursor-crosshair"
+          onClick={onExport}
+        >
+          Export
+        </Button>
       </div>
     </div>
   )

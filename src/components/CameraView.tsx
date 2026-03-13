@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
+import { Button } from '@/components/ui/button'
 
 interface Props {
   quality: number
@@ -15,7 +16,6 @@ export function CameraView({ quality, onVideoReady, onVideoStop }: Props) {
 
   const startCamera = useCallback(async (deviceId?: string) => {
     try {
-      // Stop existing stream
       if (streamRef.current) {
         streamRef.current.getTracks().forEach((t) => t.stop())
         streamRef.current = null
@@ -44,7 +44,6 @@ export function CameraView({ quality, onVideoReady, onVideoStop }: Props) {
       await videoRef.current.play()
       onVideoReady(videoRef.current)
 
-      // Get list of devices after permission is granted
       const allDevices = await navigator.mediaDevices.enumerateDevices()
       const videoDevices = allDevices.filter((d) => d.kind === 'videoinput')
       setDevices(videoDevices)
@@ -78,7 +77,6 @@ export function CameraView({ quality, onVideoReady, onVideoStop }: Props) {
     return () => stopCamera()
   }, [])
 
-  // Restart when quality changes
   useEffect(() => {
     if (streamRef.current) {
       startCamera(activeDeviceId || undefined)
@@ -91,30 +89,33 @@ export function CameraView({ quality, onVideoReady, onVideoStop }: Props) {
 
   if (error) {
     return (
-      <div>
-        <div className="camera-error">{error}</div>
-        <button
-          className="source-mode-button"
-          style={{ marginTop: '0.4rem', width: '100%' }}
+      <div className="space-y-2">
+        <div className="text-xs text-destructive px-1">{error}</div>
+        <Button
+          variant="outline"
+          size="sm"
+          className="w-full text-xs cursor-crosshair"
           onClick={() => startCamera()}
         >
           Retry
-        </button>
+        </Button>
       </div>
     )
   }
 
   if (devices.length > 1) {
     return (
-      <div className="camera-device-menu">
+      <div className="flex flex-col gap-1">
         {devices.map((d) => (
-          <button
+          <Button
             key={d.deviceId}
-            className={`camera-device-item${activeDeviceId === d.deviceId ? ' is-active' : ''}`}
+            variant={activeDeviceId === d.deviceId ? 'default' : 'outline'}
+            size="xs"
+            className="text-[10px] justify-start cursor-crosshair"
             onClick={() => switchDevice(d.deviceId)}
           >
             {d.label || `Camera ${devices.indexOf(d) + 1}`}
-          </button>
+          </Button>
         ))}
       </div>
     )

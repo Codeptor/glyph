@@ -1,5 +1,11 @@
 import { useStore } from '@/store/useStore'
-import { SliderControl } from './SliderControl'
+import { Label } from '@/components/ui/label'
+import { Slider } from '@/components/ui/slider'
+import { Input } from '@/components/ui/input'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Separator } from '@/components/ui/separator'
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import type {
   ArtStyle, CharacterSet, DitherAlgorithm, FontFamily, ColorMode,
   FXPreset, NoiseDirection, MouseInteraction, HalftoneShape,
@@ -43,19 +49,19 @@ const FONTS: FontFamily[] = ['Helvetica Neue', 'Inter', 'Poppins', 'Space Grotes
 const COLOR_MODES: { value: ColorMode; label: string }[] = [
   { value: 'grayscale', label: 'Grayscale' },
   { value: 'fullcolor', label: 'Full Color' },
-  { value: 'matrix', label: 'Matrix Green' },
-  { value: 'amber', label: 'Amber Monitor' },
+  { value: 'matrix', label: 'Matrix' },
+  { value: 'amber', label: 'Amber' },
   { value: 'custom', label: 'Custom' },
 ]
 
 const FX_PRESETS: { value: FXPreset; label: string }[] = [
   { value: 'none', label: 'None' },
-  { value: 'noise', label: 'Noise Field' },
+  { value: 'noise', label: 'Noise' },
   { value: 'intervals', label: 'Intervals' },
-  { value: 'beam', label: 'Beam Sweep' },
+  { value: 'beam', label: 'Beam' },
   { value: 'glitch', label: 'Glitch' },
-  { value: 'crt', label: 'CRT Monitor' },
-  { value: 'matrix-rain', label: 'Matrix Rain' },
+  { value: 'crt', label: 'CRT' },
+  { value: 'matrix-rain', label: 'Matrix' },
 ]
 
 const DIRECTIONS: NoiseDirection[] = ['up', 'down', 'left', 'right', 'top-left', 'top-right', 'bottom-left', 'bottom-right']
@@ -83,6 +89,42 @@ function getDirectionField(preset: FXPreset): string | null {
   }
 }
 
+interface SliderFieldProps {
+  label: string
+  value: number
+  min: number
+  max: number
+  step?: number
+  onChange: (value: number) => void
+  formatValue?: (value: number) => string
+}
+
+function SliderField({ label, value, min, max, step = 0.01, onChange, formatValue }: SliderFieldProps) {
+  const displayValue = formatValue ? formatValue(value) : String(parseFloat(value.toFixed(2)))
+
+  return (
+    <div className="space-y-1">
+      <div className="flex justify-between">
+        <Label className="text-xs uppercase tracking-wider text-muted-foreground">{label}</Label>
+        <span className="text-xs font-mono text-muted-foreground">{displayValue}</span>
+      </div>
+      <Slider
+        value={[value]}
+        min={min}
+        max={max}
+        step={step}
+        onValueChange={([v]) => onChange(v)}
+        className="cursor-crosshair"
+      />
+    </div>
+  )
+}
+
+function fmtPx(v: number) { return `${Math.round(v)}px` }
+function fmtMul(v: number) { return `${Number(v.toFixed(1))}x` }
+function fmtInt(v: number) { return String(Math.round(v)) }
+function fmtDeg(v: number) { return `${Math.round(v)}\u00B0` }
+
 export function ControlsPanel() {
   const layers = useStore((s) => s.layers)
   const activeLayerIndex = useStore((s) => s.activeLayerIndex)
@@ -105,308 +147,378 @@ export function ControlsPanel() {
   const currentDirection = dirField ? (layer as unknown as Record<string, unknown>)[dirField] as NoiseDirection : null
 
   return (
-    <div className="controls-panel">
-      <div className="controls-wrap">
-        {/* ART STYLE */}
-        <div className="control-section">
-          <div className="control-label">Art Style</div>
-          <div className="style-buttons">
-            {ART_STYLES.map((s) => (
-              <button
-                key={s.value}
-                className={layer.artStyle === s.value ? 'active' : ''}
-                onClick={() => update({ artStyle: s.value })}
-              >
-                {s.label}
-              </button>
-            ))}
-          </div>
-        </div>
+    <div className="px-4 pb-4 space-y-3">
 
-        {/* STYLE-SPECIFIC CONTROLS */}
-        {showBraille && (
-          <div className="control-section">
-            <div className="control-label">Braille Variant</div>
-            <div className="style-buttons">
+      {/* ART STYLE */}
+      <div className="space-y-1.5">
+        <Label className="text-xs uppercase tracking-wider text-muted-foreground">Art Style</Label>
+        <ToggleGroup
+          type="single"
+          value={layer.artStyle}
+          onValueChange={(v) => { if (v) update({ artStyle: v as ArtStyle }) }}
+          variant="outline"
+          size="sm"
+          className="flex flex-wrap gap-1"
+        >
+          {ART_STYLES.map((s) => (
+            <ToggleGroupItem
+              key={s.value}
+              value={s.value}
+              className="text-[10px] h-6 px-2 cursor-crosshair"
+            >
+              {s.label}
+            </ToggleGroupItem>
+          ))}
+        </ToggleGroup>
+      </div>
+
+      {/* STYLE-SPECIFIC CONTROLS */}
+      {showBraille && (
+        <>
+          <Separator />
+          <div className="space-y-1.5">
+            <Label className="text-xs uppercase tracking-wider text-muted-foreground">Braille Variant</Label>
+            <ToggleGroup
+              type="single"
+              value={layer.brailleVariant}
+              onValueChange={(v) => { if (v) update({ brailleVariant: v as BrailleVariant }) }}
+              variant="outline"
+              size="sm"
+            >
               {BRAILLE_VARIANTS.map((v) => (
-                <button
-                  key={v}
-                  className={layer.brailleVariant === v ? 'active' : ''}
-                  onClick={() => update({ brailleVariant: v })}
-                >
+                <ToggleGroupItem key={v} value={v} className="text-[10px] h-6 px-2 cursor-crosshair">
                   {v}
-                </button>
+                </ToggleGroupItem>
               ))}
-            </div>
+            </ToggleGroup>
           </div>
-        )}
+        </>
+      )}
 
-        {showHalftone && (
-          <div className="control-section">
-            <div className="control-label">Halftone</div>
-            <div className="style-buttons">
+      {showHalftone && (
+        <>
+          <Separator />
+          <div className="space-y-2">
+            <Label className="text-xs uppercase tracking-wider text-muted-foreground">Halftone</Label>
+            <ToggleGroup
+              type="single"
+              value={layer.halftoneShape}
+              onValueChange={(v) => { if (v) update({ halftoneShape: v as HalftoneShape }) }}
+              variant="outline"
+              size="sm"
+              className="flex flex-wrap gap-1"
+            >
               {HALFTONE_SHAPES.map((s) => (
-                <button
-                  key={s}
-                  className={layer.halftoneShape === s ? 'active' : ''}
-                  onClick={() => update({ halftoneShape: s })}
-                >
+                <ToggleGroupItem key={s} value={s} className="text-[10px] h-6 px-2 cursor-crosshair">
                   {s}
-                </button>
+                </ToggleGroupItem>
               ))}
-            </div>
-            <SliderControl label="Size" value={layer.halftoneSize} min={0.5} max={5} onChange={(v) => update({ halftoneSize: v })} />
-            <SliderControl label="Rotation" value={layer.halftoneRotation} min={0} max={360} step={1} onChange={(v) => update({ halftoneRotation: v })} />
+            </ToggleGroup>
+            <SliderField label="Size" value={layer.halftoneSize} min={0.5} max={5} onChange={(v) => update({ halftoneSize: v })} />
+            <SliderField label="Rotation" value={layer.halftoneRotation} min={0} max={360} step={1} onChange={(v) => update({ halftoneRotation: v })} formatValue={fmtDeg} />
           </div>
-        )}
+        </>
+      )}
 
-        {showLine && (
-          <div className="control-section">
-            <div className="control-label">Line Art</div>
-            <SliderControl label="Length" value={layer.lineLength} min={0.5} max={5} onChange={(v) => update({ lineLength: v })} />
-            <SliderControl label="Width" value={layer.lineWidth} min={0.5} max={5} onChange={(v) => update({ lineWidth: v })} />
-            <SliderControl label="Thickness" value={layer.lineThickness} min={0.5} max={5} onChange={(v) => update({ lineThickness: v })} />
-            <SliderControl label="Rotation" value={layer.lineRotation} min={0} max={360} step={1} onChange={(v) => update({ lineRotation: v })} />
+      {showLine && (
+        <>
+          <Separator />
+          <div className="space-y-2">
+            <Label className="text-xs uppercase tracking-wider text-muted-foreground">Line Art</Label>
+            <SliderField label="Length" value={layer.lineLength} min={0.5} max={5} onChange={(v) => update({ lineLength: v })} />
+            <SliderField label="Width" value={layer.lineWidth} min={0.5} max={5} onChange={(v) => update({ lineWidth: v })} />
+            <SliderField label="Thickness" value={layer.lineThickness} min={0.5} max={5} onChange={(v) => update({ lineThickness: v })} />
+            <SliderField label="Rotation" value={layer.lineRotation} min={0} max={360} step={1} onChange={(v) => update({ lineRotation: v })} formatValue={fmtDeg} />
           </div>
-        )}
+        </>
+      )}
 
-        {showParticles && (
-          <div className="control-section">
-            <div className="control-label">Particles</div>
-            <SliderControl label="Density" value={layer.particleDensity} min={0.05} max={1} onChange={(v) => update({ particleDensity: v })} />
-            <div className="control-row">
-              <div className="control-label">Character</div>
-              <input
-                className="control-text"
+      {showParticles && (
+        <>
+          <Separator />
+          <div className="space-y-2">
+            <Label className="text-xs uppercase tracking-wider text-muted-foreground">Particles</Label>
+            <SliderField label="Density" value={layer.particleDensity} min={0.05} max={1} onChange={(v) => update({ particleDensity: v })} />
+            <div className="flex items-center justify-between gap-2">
+              <Label className="text-xs uppercase tracking-wider text-muted-foreground">Character</Label>
+              <Input
                 value={layer.particleChar}
                 maxLength={1}
                 onChange={(e) => update({ particleChar: e.target.value || '*' })}
+                className="w-10 h-6 text-center text-xs font-mono cursor-crosshair"
               />
             </div>
           </div>
-        )}
+        </>
+      )}
 
-        {showClaude && (
-          <div className="control-section">
-            <div className="control-label">Claude Density</div>
-            <SliderControl label="Density" value={layer.claudeDensity} min={0.05} max={1} onChange={(v) => update({ claudeDensity: v })} />
+      {showClaude && (
+        <>
+          <Separator />
+          <div className="space-y-2">
+            <SliderField label="Claude Density" value={layer.claudeDensity} min={0.05} max={1} onChange={(v) => update({ claudeDensity: v })} />
           </div>
-        )}
+        </>
+      )}
 
-        {showRetro && (
-          <div className="control-section">
-            <div className="control-label">Retro Art</div>
-            <div className="style-buttons">
+      {showRetro && (
+        <>
+          <Separator />
+          <div className="space-y-2">
+            <Label className="text-xs uppercase tracking-wider text-muted-foreground">Retro Art</Label>
+            <ToggleGroup
+              type="single"
+              value={layer.retroDuotone}
+              onValueChange={(v) => { if (v) update({ retroDuotone: v as RetroDuotone }) }}
+              variant="outline"
+              size="sm"
+              className="flex flex-wrap gap-1"
+            >
               {RETRO_DUOTONES.map((d) => (
-                <button
-                  key={d}
-                  className={layer.retroDuotone === d ? 'active' : ''}
-                  onClick={() => update({ retroDuotone: d })}
-                >
+                <ToggleGroupItem key={d} value={d} className="text-[10px] h-6 px-2 cursor-crosshair">
                   {d.replace('-', ' ')}
-                </button>
+                </ToggleGroupItem>
               ))}
-            </div>
-            <SliderControl label="Noise" value={layer.retroNoise} min={0} max={1} onChange={(v) => update({ retroNoise: v })} />
+            </ToggleGroup>
+            <SliderField label="Noise" value={layer.retroNoise} min={0} max={1} onChange={(v) => update({ retroNoise: v })} />
           </div>
-        )}
+        </>
+      )}
 
-        {showTerminal && (
-          <div className="control-section">
-            <div className="control-label">Terminal Charset</div>
-            <div className="style-buttons">
+      {showTerminal && (
+        <>
+          <Separator />
+          <div className="space-y-2">
+            <Label className="text-xs uppercase tracking-wider text-muted-foreground">Terminal Charset</Label>
+            <ToggleGroup
+              type="single"
+              value={layer.terminalCharset}
+              onValueChange={(v) => { if (v) update({ terminalCharset: v as TerminalCharset }) }}
+              variant="outline"
+              size="sm"
+            >
               {TERMINAL_CHARSETS.map((tc) => (
-                <button
-                  key={tc}
-                  className={layer.terminalCharset === tc ? 'active' : ''}
-                  onClick={() => update({ terminalCharset: tc })}
-                >
+                <ToggleGroupItem key={tc} value={tc} className="text-[10px] h-6 px-2 cursor-crosshair">
                   {tc}
-                </button>
+                </ToggleGroupItem>
               ))}
-            </div>
+            </ToggleGroup>
           </div>
-        )}
+        </>
+      )}
 
-        {/* THREE DROPDOWNS: Font, Character Set, Dither Algorithm */}
-        <div className="control-section">
-          <div className="control-row">
-            <div className="control-label">Font</div>
-            <select
-              className="control-select"
-              value={layer.font}
-              onChange={(e) => update({ font: e.target.value as FontFamily })}
-            >
+      <Separator />
+
+      {/* DROPDOWNS: Font, Character Set, Dither Algorithm */}
+      <div className="space-y-2">
+        <div className="flex items-center justify-between gap-2">
+          <Label className="text-xs uppercase tracking-wider text-muted-foreground shrink-0">Font</Label>
+          <Select
+            value={layer.font}
+            onValueChange={(v) => update({ font: v as FontFamily })}
+          >
+            <SelectTrigger size="sm" className="h-7 text-xs flex-1 cursor-crosshair">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
               {FONTS.map((f) => (
-                <option key={f} value={f}>{f === 'VT323' ? 'VT323 (Pixel)' : f}</option>
+                <SelectItem key={f} value={f}>{f === 'VT323' ? 'VT323 (Pixel)' : f}</SelectItem>
               ))}
-            </select>
-          </div>
-          <div className="control-row">
-            <div className="control-label">Character Set</div>
-            <select
-              className="control-select"
-              value={layer.characterSet}
-              onChange={(e) => update({ characterSet: e.target.value as CharacterSet })}
-            >
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="flex items-center justify-between gap-2">
+          <Label className="text-xs uppercase tracking-wider text-muted-foreground shrink-0">Charset</Label>
+          <Select
+            value={layer.characterSet}
+            onValueChange={(v) => update({ characterSet: v as CharacterSet })}
+          >
+            <SelectTrigger size="sm" className="h-7 text-xs flex-1 cursor-crosshair">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
               {CHARACTER_SETS.map((cs) => (
-                <option key={cs.value} value={cs.value}>{cs.label}</option>
+                <SelectItem key={cs.value} value={cs.value}>{cs.label}</SelectItem>
               ))}
-            </select>
-          </div>
-          {layer.characterSet === 'custom' && (
-            <textarea
-              className="control-textarea"
-              value={layer.customCharset}
-              onChange={(e) => update({ customCharset: e.target.value })}
-              placeholder="Custom characters..."
-            />
-          )}
-          <div className="control-row">
-            <div className="control-label">Dither Algorithm</div>
-            <select
-              className="control-select"
-              value={layer.ditherAlgorithm}
-              onChange={(e) => update({ ditherAlgorithm: e.target.value as DitherAlgorithm })}
-            >
+            </SelectContent>
+          </Select>
+        </div>
+        {layer.characterSet === 'custom' && (
+          <Input
+            value={layer.customCharset}
+            onChange={(e) => update({ customCharset: e.target.value })}
+            placeholder="Custom characters..."
+            className="h-7 text-xs font-mono cursor-crosshair"
+          />
+        )}
+        <div className="flex items-center justify-between gap-2">
+          <Label className="text-xs uppercase tracking-wider text-muted-foreground shrink-0">Dither</Label>
+          <Select
+            value={layer.ditherAlgorithm}
+            onValueChange={(v) => update({ ditherAlgorithm: v as DitherAlgorithm })}
+          >
+            <SelectTrigger size="sm" className="h-7 text-xs flex-1 cursor-crosshair">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
               {DITHER_ALGORITHMS.map((d) => (
-                <option key={d.value} value={d.value}>{d.label}</option>
+                <SelectItem key={d.value} value={d.value}>{d.label}</SelectItem>
               ))}
-            </select>
-          </div>
+            </SelectContent>
+          </Select>
         </div>
+      </div>
 
-        {/* UNIFIED 2-COLUMN SLIDER GRID */}
-        <div className="control-section">
-          <div className="control-columns">
-            <div>
-              <SliderControl label="Brightness" value={layer.brightness} min={-1} max={1} onChange={(v) => update({ brightness: v })} />
-              <SliderControl label="BG Dither" value={layer.bgDither} min={0} max={1} onChange={(v) => update({ bgDither: v })} />
-              <SliderControl label="Inverse Dither" value={layer.inverseDither} min={0} max={1} onChange={(v) => update({ inverseDither: v })} />
-              <SliderControl label="Character Spacing" value={layer.characterSpacing} min={0.5} max={3} onChange={(v) => update({ characterSpacing: v })} />
-              <SliderControl label="Vignette" value={layer.vignette} min={0} max={1} onChange={(v) => update({ vignette: v })} />
-            </div>
-            <div>
-              <SliderControl label="Contrast" value={layer.contrast} min={0} max={3} onChange={(v) => update({ contrast: v })} />
-              <SliderControl label="Dither Strength" value={layer.ditherStrength} min={0} max={1} onChange={(v) => update({ ditherStrength: v })} />
-              <SliderControl label="Font Size" value={layer.fontSize} min={4} max={24} step={1} onChange={(v) => update({ fontSize: Math.round(v) })} />
-              <SliderControl label="Opacity" value={layer.opacity} min={0} max={1} onChange={(v) => update({ opacity: v })} />
-              <SliderControl label="Border Glow" value={layer.borderGlow} min={0} max={1} onChange={(v) => update({ borderGlow: v })} />
-            </div>
-          </div>
+      <Separator />
+
+      {/* 2-COLUMN SLIDER GRID */}
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-3">
+          <SliderField label="Brightness" value={layer.brightness} min={-1} max={1} onChange={(v) => update({ brightness: v })} />
+          <SliderField label="BG Dither" value={layer.bgDither} min={0} max={1} onChange={(v) => update({ bgDither: v })} />
+          <SliderField label="Inv Dither" value={layer.inverseDither} min={0} max={1} onChange={(v) => update({ inverseDither: v })} />
+          <SliderField label="Spacing" value={layer.characterSpacing} min={0.5} max={3} onChange={(v) => update({ characterSpacing: v })} formatValue={fmtMul} />
+          <SliderField label="Vignette" value={layer.vignette} min={0} max={1} onChange={(v) => update({ vignette: v })} />
         </div>
+        <div className="space-y-3">
+          <SliderField label="Contrast" value={layer.contrast} min={0} max={3} onChange={(v) => update({ contrast: v })} />
+          <SliderField label="Dither Str" value={layer.ditherStrength} min={0} max={1} onChange={(v) => update({ ditherStrength: v })} />
+          <SliderField label="Font Size" value={layer.fontSize} min={4} max={24} step={1} onChange={(v) => update({ fontSize: Math.round(v) })} formatValue={fmtPx} />
+          <SliderField label="Opacity" value={layer.opacity} min={0} max={1} onChange={(v) => update({ opacity: v })} />
+          <SliderField label="Border Glow" value={layer.borderGlow} min={0} max={1} onChange={(v) => update({ borderGlow: v })} />
+        </div>
+      </div>
 
-        {/* COLOR MODE */}
-        <div className="control-section">
-          <div className="control-row">
-            <div className="control-label">Color Mode</div>
-            <label className="check-line">
-              <input
-                type="checkbox"
-                checked={layer.invertColor}
-                onChange={(e) => update({ invertColor: e.target.checked })}
-              />
-              Invert Color
+      <Separator />
+
+      {/* COLOR MODE */}
+      <div className="space-y-2">
+        <div className="flex items-center justify-between">
+          <Label className="text-xs uppercase tracking-wider text-muted-foreground">Color Mode</Label>
+          <div className="flex items-center gap-2">
+            <Checkbox
+              id="invertColor"
+              checked={layer.invertColor}
+              onCheckedChange={(checked) => update({ invertColor: checked === true })}
+              className="cursor-crosshair"
+            />
+            <label htmlFor="invertColor" className="text-[10px] uppercase tracking-wider text-muted-foreground cursor-crosshair">
+              Invert
             </label>
           </div>
-          <div className="color-mode-tabs">
-            {COLOR_MODES.map((cm) => (
-              <button
-                key={cm.value}
-                className={layer.colorMode === cm.value ? 'active' : ''}
-                onClick={() => update({ colorMode: cm.value })}
-              >
-                {cm.label}
-              </button>
-            ))}
-          </div>
-          {layer.colorMode === 'custom' && (
-            <input
-              type="color"
-              className="control-color"
-              value={layer.customColor}
-              onChange={(e) => update({ customColor: e.target.value })}
-            />
-          )}
         </div>
+        <ToggleGroup
+          type="single"
+          value={layer.colorMode}
+          onValueChange={(v) => { if (v) update({ colorMode: v as ColorMode }) }}
+          variant="outline"
+          size="sm"
+          className="flex flex-wrap gap-1"
+        >
+          {COLOR_MODES.map((cm) => (
+            <ToggleGroupItem key={cm.value} value={cm.value} className="text-[10px] h-6 px-2 cursor-crosshair">
+              {cm.label}
+            </ToggleGroupItem>
+          ))}
+        </ToggleGroup>
+        {layer.colorMode === 'custom' && (
+          <input
+            type="color"
+            value={layer.customColor}
+            onChange={(e) => update({ customColor: e.target.value })}
+            className="h-7 w-full rounded-md border border-input cursor-crosshair"
+          />
+        )}
+      </div>
 
-        {/* FX PRESET */}
-        <div className="control-section">
-          <div className="control-label">FX Preset</div>
-          <div className="fx-preset-tabs">
-            {FX_PRESETS.map((fx) => (
-              <button
-                key={fx.value}
-                className={layer.fxPreset === fx.value ? 'active' : ''}
-                onClick={() => update({ fxPreset: fx.value })}
-              >
-                {fx.label}
-              </button>
-            ))}
+      <Separator />
+
+      {/* FX PRESET */}
+      <div className="space-y-2">
+        <Label className="text-xs uppercase tracking-wider text-muted-foreground">FX Preset</Label>
+        <ToggleGroup
+          type="single"
+          value={layer.fxPreset}
+          onValueChange={(v) => { if (v) update({ fxPreset: v as FXPreset }) }}
+          variant="outline"
+          size="sm"
+          className="flex flex-wrap gap-1"
+        >
+          {FX_PRESETS.map((fx) => (
+            <ToggleGroupItem key={fx.value} value={fx.value} className="text-[10px] h-6 px-2 cursor-crosshair">
+              {fx.label}
+            </ToggleGroupItem>
+          ))}
+        </ToggleGroup>
+
+        {layer.fxPreset !== 'none' && (
+          <div className="space-y-2">
+            <SliderField label="FX Strength" value={layer.fxStrength} min={0} max={1} onChange={(v) => update({ fxStrength: v })} />
+
+            {dirField && currentDirection && (
+              <div className="space-y-1">
+                <Label className="text-xs uppercase tracking-wider text-muted-foreground">Direction</Label>
+                <ToggleGroup
+                  type="single"
+                  value={currentDirection}
+                  onValueChange={(v) => { if (v) update({ [dirField]: v }) }}
+                  variant="outline"
+                  size="sm"
+                  className="flex flex-wrap gap-1"
+                >
+                  {DIRECTIONS.map((d) => (
+                    <ToggleGroupItem key={d} value={d} className="text-xs h-6 w-6 p-0 cursor-crosshair">
+                      {DIRECTION_ICONS[d]}
+                    </ToggleGroupItem>
+                  ))}
+                </ToggleGroup>
+              </div>
+            )}
+
+            {layer.fxPreset === 'noise' && (
+              <>
+                <SliderField label="Noise Scale" value={layer.noiseScale} min={2} max={60} step={1} onChange={(v) => update({ noiseScale: v })} formatValue={fmtInt} />
+                <SliderField label="Noise Speed" value={layer.noiseSpeed} min={0.05} max={5} onChange={(v) => update({ noiseSpeed: v })} />
+              </>
+            )}
+            {layer.fxPreset === 'intervals' && (
+              <>
+                <SliderField label="Spacing" value={layer.intervalSpacing} min={2} max={40} step={1} onChange={(v) => update({ intervalSpacing: v })} formatValue={fmtInt} />
+                <SliderField label="Speed" value={layer.intervalSpeed} min={0.05} max={5} onChange={(v) => update({ intervalSpeed: v })} />
+                <SliderField label="Width" value={layer.intervalWidth} min={1} max={10} step={1} onChange={(v) => update({ intervalWidth: v })} formatValue={fmtInt} />
+              </>
+            )}
+            {layer.fxPreset === 'matrix-rain' && (
+              <>
+                <SliderField label="Scale" value={layer.matrixScale} min={5} max={40} step={1} onChange={(v) => update({ matrixScale: v })} formatValue={fmtInt} />
+                <SliderField label="Speed" value={layer.matrixSpeed} min={0.02} max={1} onChange={(v) => update({ matrixSpeed: v })} />
+              </>
+            )}
           </div>
+        )}
+      </div>
 
-          {layer.fxPreset !== 'none' && (
-            <>
-              <SliderControl label="FX Strength" value={layer.fxStrength} min={0} max={1} onChange={(v) => update({ fxStrength: v })} />
+      <Separator />
 
-              {dirField && currentDirection && (
-                <div className="control-row">
-                  <div className="control-label">Direction</div>
-                  <div className="fx-direction-tabs">
-                    {DIRECTIONS.map((d) => (
-                      <button
-                        key={d}
-                        className={`direction-icon-button${currentDirection === d ? ' active' : ''}`}
-                        onClick={() => update({ [dirField]: d })}
-                      >
-                        {DIRECTION_ICONS[d]}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {layer.fxPreset === 'noise' && (
-                <>
-                  <SliderControl label="Noise Scale" value={layer.noiseScale} min={2} max={60} step={1} onChange={(v) => update({ noiseScale: v })} />
-                  <SliderControl label="Noise Speed" value={layer.noiseSpeed} min={0.05} max={5} onChange={(v) => update({ noiseSpeed: v })} />
-                </>
-              )}
-              {layer.fxPreset === 'intervals' && (
-                <>
-                  <SliderControl label="Spacing" value={layer.intervalSpacing} min={2} max={40} step={1} onChange={(v) => update({ intervalSpacing: v })} />
-                  <SliderControl label="Speed" value={layer.intervalSpeed} min={0.05} max={5} onChange={(v) => update({ intervalSpeed: v })} />
-                  <SliderControl label="Width" value={layer.intervalWidth} min={1} max={10} step={1} onChange={(v) => update({ intervalWidth: v })} />
-                </>
-              )}
-              {layer.fxPreset === 'matrix-rain' && (
-                <>
-                  <SliderControl label="Scale" value={layer.matrixScale} min={5} max={40} step={1} onChange={(v) => update({ matrixScale: v })} />
-                  <SliderControl label="Speed" value={layer.matrixSpeed} min={0.02} max={1} onChange={(v) => update({ matrixSpeed: v })} />
-                </>
-              )}
-            </>
-          )}
-        </div>
-
-        {/* MOUSE INTERACTION */}
-        <div className="control-section">
-          <div className="control-label">Mouse Interaction</div>
-          <div className="tab-buttons">
-            {MOUSE_INTERACTIONS.map((mi) => (
-              <button
-                key={mi}
-                className={layer.mouseInteraction === mi ? 'active' : ''}
-                onClick={() => update({ mouseInteraction: mi })}
-              >
-                {mi.charAt(0).toUpperCase() + mi.slice(1)}
-              </button>
-            ))}
-          </div>
-          <SliderControl label="Hover Strength" value={layer.hoverStrength} min={1} max={60} step={1} onChange={(v) => update({ hoverStrength: v })} />
-          <SliderControl label="Area Size" value={layer.mouseAreaSize} min={20} max={500} step={1} onChange={(v) => update({ mouseAreaSize: v })} />
-          <SliderControl label="Spread" value={layer.mouseSpread} min={0.1} max={5} onChange={(v) => update({ mouseSpread: v })} />
-        </div>
+      {/* MOUSE INTERACTION */}
+      <div className="space-y-2">
+        <Label className="text-xs uppercase tracking-wider text-muted-foreground">Mouse Interaction</Label>
+        <ToggleGroup
+          type="single"
+          value={layer.mouseInteraction}
+          onValueChange={(v) => { if (v) update({ mouseInteraction: v as MouseInteraction }) }}
+          variant="outline"
+          size="sm"
+        >
+          {MOUSE_INTERACTIONS.map((mi) => (
+            <ToggleGroupItem key={mi} value={mi} className="text-[10px] h-6 px-3 cursor-crosshair">
+              {mi.charAt(0).toUpperCase() + mi.slice(1)}
+            </ToggleGroupItem>
+          ))}
+        </ToggleGroup>
+        <SliderField label="Hover Strength" value={layer.hoverStrength} min={1} max={60} step={1} onChange={(v) => update({ hoverStrength: v })} formatValue={fmtInt} />
+        <SliderField label="Area Size" value={layer.mouseAreaSize} min={20} max={500} step={1} onChange={(v) => update({ mouseAreaSize: v })} formatValue={fmtPx} />
+        <SliderField label="Spread" value={layer.mouseSpread} min={0.1} max={5} onChange={(v) => update({ mouseSpread: v })} formatValue={fmtMul} />
       </div>
     </div>
   )

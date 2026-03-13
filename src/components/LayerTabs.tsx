@@ -1,4 +1,6 @@
 import { useStore } from '@/store/useStore'
+import { Button } from '@/components/ui/button'
+import { Label } from '@/components/ui/label'
 
 export function LayerTabs() {
   const layers = useStore((s) => s.layers)
@@ -8,29 +10,40 @@ export function LayerTabs() {
   const removeLayer = useStore((s) => s.removeLayer)
 
   return (
-    <div className="control-row">
-      <div className="control-row-head">
-        <div className="control-label">Layer</div>
+    <div className="space-y-1.5">
+      <div className="flex items-center justify-between">
+        <Label className="text-xs uppercase tracking-wider text-muted-foreground">
+          Layer
+        </Label>
         {layers.length > 1 && (
           <button
-            className="header-legal-link"
+            className="text-[10px] uppercase tracking-widest text-muted-foreground hover:text-destructive transition-colors cursor-crosshair bg-transparent border-none"
             onClick={() => removeLayer(activeLayerIndex)}
           >
             Remove
           </button>
         )}
       </div>
-      <div className="layer-tabs">
+      <div className="flex flex-wrap gap-1">
         {layers.map((layer, i) => (
-          <button
+          <Button
             key={layer.id}
-            className={`${i === activeLayerIndex ? 'active' : ''}`}
+            variant={i === activeLayerIndex ? 'default' : 'outline'}
+            size="xs"
+            className="cursor-crosshair"
             onClick={() => setActiveLayerIndex(i)}
           >
             {layer.name}
-          </button>
+          </Button>
         ))}
-        <button className="layer-add-button" onClick={addLayer}>ADD LAYER</button>
+        <Button
+          variant="ghost"
+          size="xs"
+          className="text-muted-foreground hover:text-foreground cursor-crosshair"
+          onClick={addLayer}
+        >
+          + Add Layer
+        </Button>
       </div>
     </div>
   )

@@ -39,8 +39,15 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
     <ToastContext.Provider value={{ show }}>
       {children}
       {toast && (
-        <div className={`publish-sonar-toast${visible ? ' is-visible' : ''}${toast.type === 'error' ? ' is-error' : ''}`}>
-          <div className="publish-sonar-ping" />
+        <div
+          className={`fixed bottom-6 left-1/2 -translate-x-1/2 z-[var(--z-toast)] rounded-md border px-4 py-2 text-xs font-mono uppercase tracking-wider shadow-lg transition-all duration-300 ${
+            visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'
+          } ${
+            toast.type === 'error'
+              ? 'border-destructive bg-destructive/20 text-destructive'
+              : 'border-border bg-background text-foreground'
+          }`}
+        >
           {toast.text}
         </div>
       )}

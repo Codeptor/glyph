@@ -1,6 +1,9 @@
 import { useRef, useState, useCallback } from 'react'
 import { useStore } from '@/store/useStore'
 import { CameraView } from './CameraView'
+import { Label } from '@/components/ui/label'
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import type { SourceMode, SourceQuality } from '@/types'
 
 const QUALITIES: SourceQuality[] = [320, 480, 720]
@@ -68,47 +71,67 @@ export function SourceUpload() {
   }, [])
 
   return (
-    <div className="upload-widget">
-      <div className="control-label" style={{ padding: '0 1.2rem', marginBottom: '0.3rem' }}>Source</div>
-      <div className="upload-controls-row">
-        {([['image', 'Image / Video'], ['camera', 'Live Cam']] as [SourceMode, string][]).map(([mode, label]) => (
-          <button
-            key={mode}
-            className={`source-mode-button${sourceMode === mode ? ' is-active' : ''}`}
-            onClick={() => setSourceMode(mode)}
+    <div className="px-4 py-2 space-y-2">
+      <Label className="text-xs uppercase tracking-wider text-muted-foreground">
+        Source
+      </Label>
+      <div className="flex items-center gap-2">
+        <ToggleGroup
+          type="single"
+          value={sourceMode}
+          onValueChange={(v) => { if (v) setSourceMode(v as SourceMode) }}
+          variant="outline"
+          size="sm"
+          className="flex-1"
+        >
+          <ToggleGroupItem value="image" className="flex-1 text-xs cursor-crosshair">
+            Image / Video
+          </ToggleGroupItem>
+          <ToggleGroupItem value="camera" className="flex-1 text-xs cursor-crosshair">
+            Live Cam
+          </ToggleGroupItem>
+        </ToggleGroup>
+        <div className="flex items-center gap-1.5">
+          <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Quality</span>
+          <Select
+            value={String(sourceQuality)}
+            onValueChange={(v) => setSourceQuality(Number(v) as SourceQuality)}
           >
-            {label}
-          </button>
-        ))}
-        <div className="source-quality-wrap">
-          <span className="control-label">Quality</span>
-          <select
-            className="source-resolution-inline"
-            value={sourceQuality}
-            onChange={(e) => setSourceQuality(Number(e.target.value) as SourceQuality)}
-          >
-            {QUALITIES.map((q) => (
-              <option key={q} value={q}>{q}</option>
-            ))}
-          </select>
+            <SelectTrigger size="sm" className="w-16 h-7 text-xs cursor-crosshair">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {QUALITIES.map((q) => (
+                <SelectItem key={q} value={String(q)}>{q}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
       </div>
 
       {sourceMode === 'image' && (
         <div
-          className={`upload-dropzone${isDragActive ? ' is-drag-active' : ''}`}
+          className={`flex flex-col items-center justify-center gap-1 rounded-md border border-dashed py-4 px-3 cursor-crosshair transition-colors ${
+            isDragActive
+              ? 'border-[var(--accent)] bg-[var(--accent-dim)]'
+              : 'border-border hover:border-muted-foreground hover:bg-[var(--bg-surface)]'
+          }`}
           onDrop={handleDrop}
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
           onClick={() => fileRef.current?.click()}
         >
-          <div className="upload-hint">Drop image/video or click to browse</div>
-          <div className="upload-hint-sub">Supports: JPG, PNG, GIF, MP4, WebM</div>
+          <div className="text-xs text-muted-foreground">
+            Drop image/video or click to browse
+          </div>
+          <div className="text-[10px] text-muted-foreground/60">
+            Supports: JPG, PNG, GIF, MP4, WebM
+          </div>
           <input
             ref={fileRef}
             type="file"
             accept="image/*,video/*"
-            style={{ display: 'none' }}
+            className="hidden"
             onChange={handleInputChange}
           />
         </div>

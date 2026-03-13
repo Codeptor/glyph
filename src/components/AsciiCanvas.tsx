@@ -7,6 +7,7 @@ import { ExportPopover } from './ExportPopover'
 import { SavePopover } from './SavePopover'
 import { GalleryView } from './GalleryView'
 import { TemplatesView } from './TemplatesView'
+import { Button } from '@/components/ui/button'
 
 export function AsciiCanvas() {
   const containerRef = useRef<HTMLDivElement>(null)
@@ -88,7 +89,6 @@ export function AsciiCanvas() {
     }
   }, [sourceImage, sourceMode])
 
-  // Camera mode: receive video element from SourceUpload via custom event
   useEffect(() => {
     const handleCameraReady = (e: Event) => {
       const renderer = rendererRef.current
@@ -186,53 +186,61 @@ export function AsciiCanvas() {
   }, [])
 
   return (
-    <div id="canvas-container">
+    <div className="relative flex-1 overflow-hidden bg-background">
       <div
-        className="ascii-renderer"
+        className="w-full h-full cursor-crosshair"
         ref={containerRef}
         onMouseMove={handleMouseMove}
         onMouseLeave={handleMouseLeave}
       />
       <LeftModeButtons />
       <LeftBottomBar fps={fps} />
-      <div className="left-sidebar-controls">
-        <button
-          className="left-mode-button"
+      <div className="absolute top-3 right-3 z-10">
+        <Button
+          variant="ghost"
+          size="xs"
+          className="text-[10px] uppercase tracking-wider cursor-crosshair"
           onClick={() => addImageRef.current?.click()}
           title="Add image or video"
         >
           Add Image
-        </button>
+        </Button>
         <input
           ref={addImageRef}
           type="file"
           accept="image/*,video/*"
-          style={{ display: 'none' }}
+          className="hidden"
           onChange={handleAddImage}
         />
       </div>
-      <div className="canvas-bottom-right">
-        <button
-          className="left-mode-button"
+      <div className="absolute bottom-3 right-3 z-10 flex items-center gap-1">
+        <Button
+          variant="ghost"
+          size="icon-xs"
+          className="cursor-crosshair"
           onClick={handleDownload}
           title="Download PNG"
         >
-          ↓
-        </button>
-        <button
-          className="left-mode-button"
+          {'\u2193'}
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon-xs"
+          className="cursor-crosshair"
           onClick={handleSaveToGallery}
           title="Save to gallery"
         >
           +
-        </button>
-        <button
-          className="left-mode-button"
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon-xs"
+          className="cursor-crosshair"
           onClick={() => setSidebarHidden(!sidebarHidden)}
           title={sidebarHidden ? 'Show sidebar' : 'Hide sidebar'}
         >
-          {sidebarHidden ? '▶' : '◀'}
-        </button>
+          {sidebarHidden ? '\u25B6' : '\u25C0'}
+        </Button>
       </div>
       {showExport && <ExportPopover onClose={() => setShowExport(false)} />}
       {showPresets && <SavePopover onClose={() => setShowPresets(false)} />}

@@ -71,10 +71,14 @@ export function DragOverlay() {
   if (!isDragging) return null
 
   return (
-    <div className="drag-overlay">
-      <div className="drag-overlay-inner">
-        <div className="drag-overlay-text">Drop file to import</div>
-        <div className="drag-overlay-sub">The dropped media file will become the current render source.</div>
+    <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/80 backdrop-blur-sm">
+      <div className="flex flex-col items-center gap-3 rounded-lg border border-dashed border-[var(--accent)] bg-[var(--bg-surface)] px-12 py-10">
+        <div className="text-sm font-semibold uppercase tracking-wider text-foreground">
+          Drop file to import
+        </div>
+        <div className="text-xs text-muted-foreground">
+          The dropped media file will become the current render source.
+        </div>
       </div>
     </div>
   )

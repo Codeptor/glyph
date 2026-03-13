@@ -10,22 +10,33 @@ export function SidebarHeader() {
   }
 
   return (
-    <div className="hero-edition">
-      <div className="hero-title-group">
-        <div className="ascii-mark">ASCII</div>
-        <div className="hero-description">
+    <div className="flex flex-col gap-1 px-4 pt-4 pb-2">
+      <div className="flex items-baseline gap-2">
+        <span className="text-2xl font-bold tracking-tighter text-foreground">
+          ASCII
+        </span>
+        <span className="text-[10px] text-muted-foreground leading-snug">
           ASCII editor for art, video, live cam, and canvas exports
-        </div>
+        </span>
       </div>
-      <div className="header-action-row">
-        <Link to="/terms" className="header-legal-link">
-          TERMS
+      <div className="flex items-center gap-3">
+        <Link
+          to="/terms"
+          className="text-[10px] uppercase tracking-widest text-muted-foreground hover:text-foreground transition-colors cursor-crosshair"
+        >
+          Terms
         </Link>
-        <Link to="/privacy" className="header-legal-link">
-          PRIVACY
+        <Link
+          to="/privacy"
+          className="text-[10px] uppercase tracking-widest text-muted-foreground hover:text-foreground transition-colors cursor-crosshair"
+        >
+          Privacy
         </Link>
-        <button className="header-legal-link" onClick={handleExportPreset}>
-          CHANGELOG
+        <button
+          className="text-[10px] uppercase tracking-widest text-muted-foreground hover:text-foreground transition-colors cursor-crosshair bg-transparent border-none"
+          onClick={handleExportPreset}
+        >
+          Changelog
         </button>
       </div>
     </div>
