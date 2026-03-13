@@ -8,7 +8,7 @@ function lerpChannel(a: number, b: number, t: number): number {
   return clamp(Math.round(a + (b - a) * t), 0, 255)
 }
 
-// --- Edge detection (matching asc11.com Ux function) ---
+// --- Edge detection (Sobel-like gradient) ---
 
 export function getLocalEdgeContrast(
   grid: Float32Array,
@@ -28,7 +28,7 @@ export function getLocalEdgeContrast(
   return clamp((gradientX + gradientY) / 2, 0, 1)
 }
 
-// --- Vignette (matching asc11.com render loop) ---
+// --- Vignette (radial darkening) ---
 
 export function getVignetteFactor(
   x: number,
@@ -45,7 +45,7 @@ export function getVignetteFactor(
   return 1 - strength + strength * vignetteCore
 }
 
-// --- Mouse offset (matching asc11.com attract/push) ---
+// --- Mouse offset (attract/push interaction) ---
 
 export function getMouseOffset(
   cellX: number,
@@ -76,7 +76,7 @@ export function getMouseOffset(
   }
 }
 
-// --- Color modes (matching asc11.com colorFromMode / qm) ---
+// --- Color modes (brightness-to-color mapping) ---
 
 export function getColorForMode(
   brightness: number,
@@ -422,7 +422,7 @@ export function drawInverseDitherPass(
   }
 }
 
-// --- Border Glow Overlay (matching asc11.com zx function) ---
+// --- Border Glow Overlay (edge gradient overlay) ---
 
 function getBorderGlowColor(
   artStyle: string,

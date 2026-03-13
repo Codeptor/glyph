@@ -5,7 +5,7 @@ function clamp(v: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, v))
 }
 
-// --- Direction system (matching asc11.com source) ---
+// --- Direction system (unified direction system) ---
 
 interface DirInfo {
   dx: number; dy: number

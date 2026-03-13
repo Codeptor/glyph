@@ -15,7 +15,8 @@ export function LeftModeButtons() {
   const setThemeMode = useStore((s) => s.setThemeMode)
 
   return (
-    <div className="absolute top-3 left-3 z-10 flex items-center gap-1">
+    <div className="absolute top-3 left-3 z-10 flex items-center gap-1.5">
+      <span className="text-sm font-bold font-mono tracking-tighter text-accent/80 mr-1 select-none">G</span>
       {PANELS.map((p) => (
         <Button
           key={p.value}

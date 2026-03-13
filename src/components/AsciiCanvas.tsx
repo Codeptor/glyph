@@ -184,7 +184,7 @@ export function AsciiCanvas() {
     const dataUrl = renderer.toDataURL()
     const a = document.createElement('a')
     a.href = dataUrl
-    a.download = `asc11-${Date.now()}.png`
+    a.download = `glyph-${Date.now()}.png`
     a.click()
   }, [])
 

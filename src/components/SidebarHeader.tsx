@@ -1,42 +1,31 @@
-import { Link } from 'react-router-dom'
-import { useStore } from '@/store/useStore'
-
 export function SidebarHeader() {
-  const exportPreset = useStore((s) => s.exportPreset)
-
-  const handleExportPreset = () => {
-    const json = exportPreset()
-    navigator.clipboard.writeText(json)
-  }
-
   return (
-    <div className="flex flex-col gap-1 px-4 pt-4 pb-2">
+    <div className="flex flex-col gap-1.5 px-4 pt-4 pb-2">
       <div className="flex items-baseline gap-2">
-        <span className="text-2xl font-bold tracking-tighter text-foreground">
-          ASCII
+        <span className="text-xl font-bold tracking-tighter font-mono text-accent">
+          GLYPH
         </span>
         <span className="text-[10px] text-muted-foreground leading-snug">
-          ASCII editor for art, video, live cam, and canvas exports
+          ascii art generator
         </span>
       </div>
       <div className="flex items-center gap-3">
-        <Link
-          to="/terms"
-          className="text-[10px] uppercase tracking-widest text-muted-foreground hover:text-foreground transition-colors cursor-crosshair"
+        <span className="text-[10px] text-muted-foreground/50 font-mono">v1.0</span>
+        <a
+          href="https://github.com/Codeptor/glyph"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-[10px] uppercase tracking-widest text-muted-foreground hover:text-accent transition-colors cursor-crosshair"
         >
-          Terms
-        </Link>
-        <Link
-          to="/privacy"
-          className="text-[10px] uppercase tracking-widest text-muted-foreground hover:text-foreground transition-colors cursor-crosshair"
-        >
-          Privacy
-        </Link>
+          GitHub
+        </a>
         <button
           className="text-[10px] uppercase tracking-widest text-muted-foreground hover:text-foreground transition-colors cursor-crosshair bg-transparent border-none"
-          onClick={handleExportPreset}
+          onClick={() => {
+            window.open('https://github.com/Codeptor/glyph/issues', '_blank')
+          }}
         >
-          Changelog
+          Feedback
         </button>
       </div>
     </div>

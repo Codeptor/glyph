@@ -1,6 +1,6 @@
 import type { GalleryAsset, Preset } from '@/types'
 
-const DB_NAME = 'asc11'
+const DB_NAME = 'glyph'
 const DB_VERSION = 1
 
 function openDB(): Promise<IDBDatabase> {
