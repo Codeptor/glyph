@@ -20,7 +20,7 @@ export type SourceMode = 'image' | 'camera'
 
 export type SourceQuality = 320 | 480 | 720
 
-export type LeftPanel = 'library' | 'templates' | 'creations'
+export type LeftPanel = 'library' | 'templates' | 'creations' | null
 
 export type ThemeMode = 'dark' | 'light'
 

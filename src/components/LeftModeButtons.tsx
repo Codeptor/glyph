@@ -1,7 +1,7 @@
 import { useStore } from '@/store/useStore'
 import type { LeftPanel } from '@/types'
 
-const PANELS: { value: LeftPanel; label: string }[] = [
+const PANELS: { value: NonNullable<LeftPanel>; label: string }[] = [
   { value: 'library', label: 'Library' },
   { value: 'templates', label: 'Templates' },
   { value: 'creations', label: 'Creations' },
@@ -19,7 +19,7 @@ export function LeftModeButtons() {
         <button
           key={p.value}
           className={`left-mode-button${leftPanel === p.value ? ' is-active' : ''}`}
-          onClick={() => setLeftPanel(p.value)}
+          onClick={() => setLeftPanel(leftPanel === p.value ? null : p.value)}
         >
           {p.label}
         </button>

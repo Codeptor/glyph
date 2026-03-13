@@ -183,7 +183,7 @@ export const useStore = create<AppState>((set, get) => ({
   backgroundColor: '#000000',
   fps: 30,
 
-  leftPanel: 'library',
+  leftPanel: null,
   themeMode: 'dark',
   sidebarHidden: false,
 

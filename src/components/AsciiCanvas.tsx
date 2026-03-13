@@ -209,6 +209,7 @@ export function AsciiCanvas() {
       {showPresets && <SavePopover onClose={() => setShowPresets(false)} />}
       {leftPanel === 'library' && <GalleryView />}
       {leftPanel === 'templates' && <TemplatesView />}
+      {leftPanel === 'creations' && <GalleryView />}
     </div>
   )
 }
