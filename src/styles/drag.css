@@ -1,0 +1,42 @@
+.drag-overlay {
+  position: fixed;
+  inset: 14px;
+  border: 2px dashed var(--border);
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+  opacity: 0;
+  z-index: var(--z-modal);
+  background-color: rgba(0, 0, 0, 0.75);
+  transition: opacity 200ms ease, border-color 200ms ease;
+}
+
+.drag-overlay.is-visible {
+  opacity: 1;
+  border-color: var(--accent);
+}
+
+.drag-overlay-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  text-align: center;
+}
+
+.drag-overlay-title {
+  font-size: 0.85rem;
+  font-family: var(--font-display);
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--accent);
+  font-weight: 500;
+}
+
+.drag-overlay-subtitle {
+  font-size: 0.62rem;
+  font-family: var(--font-display);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: rgba(255, 255, 255, 0.5);
+}

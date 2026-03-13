@@ -1,0 +1,178 @@
+.save-popover {
+  width: min(46vw, 560px);
+  max-width: 400px;
+  border: 1px solid var(--border);
+  background-color: rgba(0, 0, 0, 0.92);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  position: absolute;
+  right: 1rem;
+  bottom: 1rem;
+  z-index: var(--z-modal);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding: 0.8rem;
+  gap: 0.6rem;
+}
+
+.save-popover-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.62rem;
+  font-family: var(--font-display);
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: rgba(255, 255, 255, 0.65);
+}
+
+.save-popover-close {
+  border: 1px solid var(--border);
+  background: none;
+  color: var(--fg);
+  font-size: 0.62rem;
+  font-family: var(--font-display);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  padding: 0.25rem 0.5rem;
+  cursor: crosshair;
+  transition: color var(--transition-fast), border-color var(--transition-fast);
+}
+
+.save-popover-close:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+.save-popover-line {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.save-popover-line .control-label {
+  font-size: 0.6rem;
+}
+
+.save-name-row {
+  display: flex;
+  gap: 0.35rem;
+  align-items: center;
+}
+
+.save-name-row input {
+  flex: 1;
+  height: 2rem;
+  border: 1px solid var(--border);
+  background-color: transparent;
+  color: var(--fg);
+  font-size: 0.65rem;
+  font-family: var(--font-display);
+  padding: 0 0.5rem;
+  border-radius: 0;
+  cursor: crosshair;
+  transition: border-color var(--transition-fast);
+}
+
+.save-name-row input:hover {
+  border-color: var(--accent);
+}
+
+.save-name-row input:focus {
+  border-color: var(--accent);
+  outline: none;
+}
+
+.save-name-row button {
+  height: 2rem;
+  padding: 0 0.7rem;
+  border: 1px solid var(--border);
+  background: none;
+  color: var(--fg);
+  font-size: 0.62rem;
+  font-family: var(--font-display);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  cursor: crosshair;
+  transition: color var(--transition-fast), border-color var(--transition-fast);
+}
+
+.save-name-row button:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+.save-preset-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.5rem;
+  overflow-y: auto;
+  max-height: 320px;
+  scrollbar-width: thin;
+}
+
+.preset-item {
+  padding: 0.3rem;
+  border: 1px solid var(--border);
+  cursor: crosshair;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  transition: border-color var(--transition-fast);
+  background-color: var(--bg);
+}
+
+.preset-item:hover {
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+.preset-item.is-selected {
+  border-color: var(--accent);
+}
+
+.preset-item img {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: contain;
+  display: block;
+  background-color: var(--bg-surface);
+}
+
+.preset-item-name {
+  font-size: 0.58rem;
+  font-family: var(--font-display);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: rgba(255, 255, 255, 0.65);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.preset-item-actions {
+  display: flex;
+  gap: 0.25rem;
+  justify-content: flex-end;
+}
+
+.preset-item-actions button {
+  font-size: 0.54rem;
+  font-family: var(--font-display);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: rgba(255, 255, 255, 0.4);
+  background: none;
+  border: none;
+  cursor: crosshair;
+  padding: 0.15rem 0.3rem;
+  transition: color var(--transition-fast);
+}
+
+.preset-item-actions button:hover {
+  color: var(--accent);
+}
+
+.preset-item-actions button.preset-delete:hover {
+  color: var(--danger);
+}

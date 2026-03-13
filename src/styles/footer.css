@@ -1,0 +1,73 @@
+.footer-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  padding: 10px 0 18px;
+}
+
+.meta-specs {
+  font-size: 0.5rem;
+  font-family: var(--font-display);
+  display: flex;
+  flex-direction: column;
+  gap: 0.22rem;
+}
+
+.meta-specs > div {
+  display: grid;
+  grid-template-columns: 2.35rem 1fr;
+  gap: 0.4rem;
+  align-items: baseline;
+}
+
+.meta-key {
+  font-size: 0.5rem;
+  font-family: var(--font-display);
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.meta-value {
+  font-size: 0.5rem;
+  font-family: var(--font-mono);
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.footer-action-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.5rem;
+}
+
+.footer-actions {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.action-circle {
+  width: 84px;
+  height: 84px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: radial-gradient(circle at center, rgba(255, 255, 255, 0.03) 0%, transparent 70%);
+  color: var(--fg);
+  font-size: 0.66rem;
+  font-family: var(--font-display);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  cursor: crosshair;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  transition: color var(--transition-normal), border-color var(--transition-normal), transform var(--transition-normal);
+}
+
+.action-circle:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+  transform: translateY(-2px);
+}

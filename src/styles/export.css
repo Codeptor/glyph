@@ -1,0 +1,142 @@
+.export-popover {
+  width: min(46vw, 560px);
+  max-width: 400px;
+  border: 1px solid var(--border);
+  background-color: rgba(0, 0, 0, 0.92);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  position: absolute;
+  right: 1rem;
+  bottom: 1rem;
+  z-index: var(--z-modal);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.export-popover-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.7rem 0.8rem;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.62rem;
+  font-family: var(--font-display);
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: rgba(255, 255, 255, 0.65);
+}
+
+.export-close {
+  border: 1px solid var(--border);
+  background: none;
+  color: var(--fg);
+  font-size: 0.62rem;
+  font-family: var(--font-display);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  padding: 0.25rem 0.5rem;
+  cursor: crosshair;
+  transition: color var(--transition-fast), border-color var(--transition-fast);
+}
+
+.export-close:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+.export-copy {
+  border: 1px solid var(--border);
+  background: none;
+  color: var(--fg);
+  font-size: 0.62rem;
+  font-family: var(--font-display);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  padding: 0.25rem 0.5rem;
+  cursor: crosshair;
+  transition: color var(--transition-fast), border-color var(--transition-fast);
+}
+
+.export-copy:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+.export-code-block {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  line-height: 1.55;
+  color: rgba(255, 255, 255, 0.85);
+  background-color: var(--bg);
+  border: 1px solid var(--border);
+  padding: 0.6rem;
+  min-height: 260px;
+  resize: vertical;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  word-break: break-all;
+  margin: 0.6rem 0.8rem;
+  scrollbar-width: thin;
+}
+
+.export-popover-tabs {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  border-bottom: 1px solid var(--border);
+}
+
+.export-popover-tabs button {
+  padding: 0.5rem 0.4rem;
+  font-size: 0.6rem;
+  font-family: var(--font-display);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: rgba(255, 255, 255, 0.55);
+  background: none;
+  border: none;
+  border-right: 1px solid var(--border);
+  cursor: crosshair;
+  transition: color var(--transition-fast);
+}
+
+.export-popover-tabs button:last-child {
+  border-right: none;
+}
+
+.export-popover-tabs button:hover {
+  color: var(--accent);
+}
+
+.export-popover-tabs button.active {
+  color: var(--accent);
+}
+
+.export-popover-actions {
+  position: sticky;
+  bottom: 0;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.95) 60%, transparent);
+  padding: 0.6rem 0.8rem;
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.4rem;
+}
+
+.export-popover-note {
+  font-size: 0.58rem;
+  font-family: var(--font-display);
+  color: rgba(255, 255, 255, 0.45);
+  padding: 0 0.8rem 0.4rem;
+  line-height: 1.5;
+}
+
+.export-popover-disclaimer {
+  font-size: 0.54rem;
+  font-family: var(--font-display);
+  color: rgba(255, 255, 255, 0.35);
+  padding: 0.4rem 0.8rem;
+  line-height: 1.5;
+  border-top: 1px solid var(--border-subtle);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
