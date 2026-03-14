@@ -90,15 +90,18 @@ export function ExportPopover({ onClose }: Props) {
   }
 
   const handleReactDownload = () => {
-    const data = getCanvasData()
-    if (!data) return
+    const renderer = getGlobalRenderer()
+    if (!renderer) return
+    const canvas = renderer.getCanvas()
+    const compositeDataUrl = canvas.toDataURL('image/png')
+    const layerImages = renderer.exportLayerImages(layers, backgroundColor)
+
     const tsx = generateReactExport({
-      layers,
+      layerImages,
+      compositeDataUrl,
       backgroundColor,
-      aspectRatio,
-      canvasDataUrl: data.dataUrl,
-      width: data.width,
-      height: data.height,
+      width: canvas.width,
+      height: canvas.height,
     })
     downloadFile(tsx, `AsciiArt.tsx`, 'text/typescript')
   }

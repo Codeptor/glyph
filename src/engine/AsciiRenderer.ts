@@ -294,4 +294,43 @@ export class AsciiRenderer {
   toDataURL(): string {
     return this.canvas.toDataURL('image/png')
   }
+
+  exportLayerImages(
+    layers: Layer[],
+    backgroundColor: string,
+  ): { dataUrl: string; name: string; width: number; height: number }[] {
+    const { width, height } = this.canvas
+    if (width === 0 || height === 0) return []
+    const time = (performance.now() - this.startTime) / 1000
+
+    const tempCanvas = document.createElement('canvas')
+    tempCanvas.width = width
+    tempCanvas.height = height
+    const tempCtx = tempCanvas.getContext('2d')
+    if (!tempCtx) return []
+
+    const origCtx = this.ctx
+    const results: { dataUrl: string; name: string; width: number; height: number }[] = []
+
+    for (const layer of layers) {
+      if (layer.opacity <= 0) continue
+
+      tempCtx.clearRect(0, 0, width, height)
+      tempCtx.fillStyle = backgroundColor
+      tempCtx.fillRect(0, 0, width, height)
+
+      this.ctx = tempCtx
+      this.renderLayer(layer, width, height, time)
+      this.ctx = origCtx
+
+      results.push({
+        dataUrl: tempCanvas.toDataURL('image/png'),
+        name: layer.name,
+        width,
+        height,
+      })
+    }
+
+    return results
+  }
 }
