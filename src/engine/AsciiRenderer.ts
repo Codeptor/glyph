@@ -1,10 +1,17 @@
-import type { Layer } from '@/types'
+import type { Layer, TonemapConfig } from '@/types'
 import { pixelBrightness, adjustBrightness } from './brightness.ts'
 import { DITHER_FUNCTIONS } from './dither.ts'
 import { STYLE_RENDERERS } from './styles/index.ts'
 import type { RenderContext } from './styles/types.ts'
 import { PRE_RENDER_FX, POST_RENDER_FX } from './fx.ts'
 import { drawBgDitherPass, drawInverseDitherPass, drawBorderGlowOverlay } from './renderUtils.ts'
+import { tonemap } from './pipeline/tonemap.ts'
+import { blendCanvases } from './pipeline/blend.ts'
+import { generateMask, applyMaskToCanvas } from './pipeline/masks.ts'
+import { FeedbackBuffer } from './pipeline/feedback.ts'
+import { ShaderChain } from './pipeline/shaders.ts'
+import { FIELD_GENERATORS } from './generative/fields.ts'
+import { ParticleSystem } from './generative/particles.ts'
 
 export class AsciiRenderer {
   private canvas: HTMLCanvasElement
@@ -18,6 +25,13 @@ export class AsciiRenderer {
   private source: HTMLImageElement | HTMLVideoElement | null = null
   private mouseX: number = -1
   private mouseY: number = -1
+  private layerCanvases: Map<string, HTMLCanvasElement> = new Map()
+  private layerCtxs: Map<string, CanvasRenderingContext2D> = new Map()
+  private feedbackBuffer: FeedbackBuffer = new FeedbackBuffer()
+  private shaderChains: Map<string, ShaderChain> = new Map()
+  private particleSystems: Map<string, ParticleSystem> = new Map()
+  private tonemapConfig: TonemapConfig = { enabled: false, gamma: 0.75 }
+  private lastTime: number = 0
 
   constructor() {
     this.canvas = document.createElement('canvas')
@@ -43,6 +57,10 @@ export class AsciiRenderer {
   setMouse(x: number, y: number): void {
     this.mouseX = x
     this.mouseY = y
+  }
+
+  setTonemapConfig(config: TonemapConfig): void {
+    this.tonemapConfig = config
   }
 
   resize(w: number, h: number): void {
@@ -92,25 +110,108 @@ export class AsciiRenderer {
     return { w: Math.round(w), h: Math.round(h) }
   }
 
+  private getLayerCanvas(layerId: string, w: number, h: number): { canvas: HTMLCanvasElement; ctx: CanvasRenderingContext2D } {
+    let canvas = this.layerCanvases.get(layerId)
+    let ctx = this.layerCtxs.get(layerId)
+    if (!canvas || canvas.width !== w || canvas.height !== h) {
+      canvas = document.createElement('canvas')
+      canvas.width = w
+      canvas.height = h
+      ctx = canvas.getContext('2d')!
+      this.layerCanvases.set(layerId, canvas)
+      this.layerCtxs.set(layerId, ctx)
+    }
+    return { canvas: canvas!, ctx: ctx! }
+  }
+
+  private getShaderChain(layerId: string): ShaderChain {
+    let chain = this.shaderChains.get(layerId)
+    if (!chain) {
+      chain = new ShaderChain()
+      this.shaderChains.set(layerId, chain)
+    }
+    return chain
+  }
+
+  private getParticleSystem(layerId: string): ParticleSystem {
+    let ps = this.particleSystems.get(layerId)
+    if (!ps) {
+      ps = new ParticleSystem()
+      this.particleSystems.set(layerId, ps)
+    }
+    return ps
+  }
+
   render(layers: Layer[], backgroundColor: string, _aspectRatio?: string): void {
     const { width, height } = this.canvas
     if (width === 0 || height === 0) return
 
+    const time = (performance.now() - this.startTime) / 1000
+    const dt = time - this.lastTime
+    this.lastTime = time
+
+    // Clear main canvas
     this.ctx.fillStyle = backgroundColor
     this.ctx.fillRect(0, 0, width, height)
 
-    const time = (performance.now() - this.startTime) / 1000
     let postFxLayer: Layer | null = null
 
     for (const layer of layers) {
       if (layer.opacity <= 0) continue
-      this.renderLayer(layer, width, height, time)
+
+      // Get per-layer offscreen canvas
+      const { canvas: layerCanvas, ctx: layerCtx } = this.getLayerCanvas(layer.id, width, height)
+      layerCtx.clearRect(0, 0, width, height)
+
+      // Swap context to layer canvas for renderLayer
+      const origCtx = this.ctx
+      this.ctx = layerCtx
+
+      // Render the layer content
+      if (layer.sourceType === 'generative') {
+        this.renderGenerativeLayer(layer, width, height, time)
+      } else {
+        this.renderLayer(layer, width, height, time)
+      }
+
+      // Restore original context
+      this.ctx = origCtx
+
+      // Particles overlay on layer canvas
+      if (layer.particles.enabled) {
+        const ps = this.getParticleSystem(layer.id)
+        ps.setConfig(layer.particles)
+        ps.update(Math.min(dt, 0.05), width, height)
+        ps.render(layerCtx, width, height)
+      }
+
+      // Mask
+      if (layer.mask.type !== 'none') {
+        const cellWidth = layer.fontSize * layer.characterSpacing
+        const cellHeight = layer.fontSize * 1.2
+        const cols = Math.max(1, Math.floor(width / cellWidth))
+        const rows = Math.max(1, Math.floor(height / cellHeight))
+        const mask = generateMask(layer.mask, cols, rows, time)
+        applyMaskToCanvas(layerCtx, mask, cols, rows, width, height)
+      }
+
+      // Shader chain on layer canvas
+      if (layer.shaderChain.length > 0) {
+        const chain = this.getShaderChain(layer.id)
+        chain.setEntries(layer.shaderChain)
+        chain.apply(layerCtx, width, height, time)
+      }
+
+      // Track post-render FX layer
       if (layer.fxPreset !== 'none' && POST_RENDER_FX[layer.fxPreset]) {
         postFxLayer = layer
       }
+
+      // Composite layer onto main canvas using blend mode
+      blendCanvases(this.ctx, layerCanvas, layer.blendMode, layer.opacity)
     }
 
-    // apply post-render FX overlay (glitch, crt, matrix-rain)
+    // Post-render FX (CRT, matrix-rain) on the composited result
     if (postFxLayer) {
       const fxFn = POST_RENDER_FX[postFxLayer.fxPreset]
       if (fxFn) {
@@ -118,6 +219,14 @@ export class AsciiRenderer {
         fxFn(this.ctx, width, height, postFxLayer, time)
         this.ctx.restore()
       }
+    }
+
+    // Feedback buffer on the final composite
+    const feedbackLayer = layers.find(l => l.feedback.enabled)
+    if (feedbackLayer) {
+      this.feedbackBuffer.apply(this.canvas, feedbackLayer.feedback)
+    } else {
+      this.feedbackBuffer.reset()
     }
   }
 
@@ -162,6 +271,12 @@ export class AsciiRenderer {
       let bri = pixelBrightness(r, g, b)
       bri = adjustBrightness(bri, layer.brightness, layer.contrast)
       brightnessGrid[i] = bri
+    }
+
+    // Apply tonemap if enabled
+    if (this.tonemapConfig.enabled) {
+      const tonemapped = tonemap(brightnessGrid, cols, rows, this.tonemapConfig.gamma)
+      brightnessGrid.set(tonemapped)
     }
 
     // apply pre-render FX (noise, intervals, beam) to brightness grid
@@ -218,6 +333,94 @@ export class AsciiRenderer {
     }
 
     // draw border glow overlay (on top of everything)
+    if (layer.borderGlow > 0.001) {
+      this.ctx.save()
+      drawBorderGlowOverlay(
+        this.ctx, width, height, layer.artStyle, layer.colorMode,
+        layer.customColor, layer.retroDuotone, layer.borderGlow, layer.invertColor,
+      )
+      this.ctx.restore()
+    }
+  }
+
+  private renderGenerativeLayer(
+    layer: Layer,
+    width: number,
+    height: number,
+    time: number,
+  ): void {
+    const cellWidth = layer.fontSize * layer.characterSpacing
+    const cellHeight = layer.fontSize * 1.2
+    const cols = Math.max(1, Math.floor(width / cellWidth))
+    const rows = Math.max(1, Math.floor(height / cellHeight))
+
+    // Generate brightness + color from procedural field
+    const fieldFn = FIELD_GENERATORS[layer.generativeField]
+    if (!fieldFn) return
+    const { brightness: brightnessGrid, colors: colorGrid } = fieldFn(
+      cols, rows, time,
+      layer.generativeScale, layer.generativeSpeed, layer.generativeComplexity,
+    )
+
+    // Apply tonemap if enabled
+    let grid = brightnessGrid
+    if (this.tonemapConfig.enabled) {
+      grid = tonemap(grid, cols, rows, this.tonemapConfig.gamma)
+    }
+
+    // Apply pre-render FX
+    const preFx = PRE_RENDER_FX[layer.fxPreset]
+    if (preFx) {
+      preFx(grid, cols, rows, layer, time)
+    }
+
+    // Apply dithering
+    const ditherFn = DITHER_FUNCTIONS[layer.ditherAlgorithm]
+    const dithered = ditherFn(grid, cols, rows, layer.ditherStrength)
+
+    // BG dither pass
+    if (layer.bgDither > 0) {
+      this.ctx.save()
+      drawBgDitherPass(
+        this.ctx, dithered, colorGrid, cols, rows, cellWidth, cellHeight,
+        layer.bgDither, time, layer.artStyle, layer.colorMode, layer.customColor,
+        layer.retroDuotone, layer.opacity,
+      )
+      this.ctx.restore()
+    }
+
+    // Inverse dither pass
+    if (layer.inverseDither > 0) {
+      this.ctx.save()
+      const invertedBg = layer.invertColor ? 'rgba(255,255,255,1)' : 'rgba(0,0,0,1)'
+      drawInverseDitherPass(
+        this.ctx, dithered, cols, rows, cellWidth, cellHeight,
+        layer.inverseDither, time, layer.opacity, invertedBg,
+      )
+      this.ctx.restore()
+    }
+
+    // Style renderer
+    const rc: RenderContext = {
+      ctx: this.ctx,
+      brightnessGrid: dithered,
+      colorGrid,
+      cols, rows,
+      layer,
+      cellWidth, cellHeight,
+      time,
+      mouseX: this.mouseX,
+      mouseY: this.mouseY,
+    }
+
+    const styleFn = STYLE_RENDERERS[layer.artStyle]
+    if (styleFn) {
+      this.ctx.save()
+      styleFn(rc)
+      this.ctx.restore()
+    }
+
+    // Border glow
     if (layer.borderGlow > 0.001) {
       this.ctx.save()
       drawBorderGlowOverlay(
@@ -289,10 +492,28 @@ export class AsciiRenderer {
   destroy(): void {
     this.stopLoop()
     this.source = null
+    this.layerCanvases.clear()
+    this.layerCtxs.clear()
+    this.feedbackBuffer.reset()
+    this.shaderChains.clear()
+    this.particleSystems.forEach(ps => ps.reset())
+    this.particleSystems.clear()
   }
 
   toDataURL(): string {
     return this.canvas.toDataURL('image/png')
+  }
+
+  exportSourceImage(): string | null {
+    const dims = this.getSourceDimensions()
+    if (!dims || !this.source) return null
+    const temp = document.createElement('canvas')
+    temp.width = dims.sw
+    temp.height = dims.sh
+    const ctx = temp.getContext('2d')
+    if (!ctx) return null
+    ctx.drawImage(this.source, 0, 0)
+    return temp.toDataURL('image/png')
   }
 
   exportLayerImages(
