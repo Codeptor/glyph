@@ -29,6 +29,7 @@ export function AsciiCanvas() {
   const addGalleryAsset = useStore((s) => s.addGalleryAsset)
   const setSourceImage = useStore((s) => s.setSourceImage)
   const leftPanel = useStore((s) => s.leftPanel)
+  const tonemapConfig = useStore((s) => s.tonemapConfig)
 
   useEffect(() => {
     const renderer = new AsciiRenderer()
@@ -126,7 +127,19 @@ export function AsciiCanvas() {
   useEffect(() => {
     const renderer = rendererRef.current
     if (!renderer || !loopStarted) return
+    renderer.setTonemapConfig(tonemapConfig)
     renderer.updateLoop(layers, backgroundColor, aspectRatio)
+  }, [layers, backgroundColor, aspectRatio, loopStarted, tonemapConfig])
+
+  // Auto-start loop for generative mode (no source needed)
+  useEffect(() => {
+    const renderer = rendererRef.current
+    if (!renderer) return
+    const hasGenerativeLayer = layers.some(l => l.sourceType === 'generative' && l.opacity > 0)
+    if (hasGenerativeLayer && !loopStarted) {
+      renderer.startLoop(layers, backgroundColor, aspectRatio, setFps)
+      setLoopStarted(true)
+    }
   }, [layers, backgroundColor, aspectRatio, loopStarted])
 
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
