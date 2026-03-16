@@ -36,7 +36,7 @@ function fieldPlasma(cols: number, rows: number, time: number, scale: number, sp
   const brightness = new Float32Array(total)
   const colors: Array<[number, number, number]> = new Array(total)
   const t = time * speed * 0.3
-  const s = scale * 0.1
+  const freq = scale * 1.0
 
   for (let y = 0; y < rows; y++) {
     for (let x = 0; x < cols; x++) {
@@ -44,14 +44,15 @@ function fieldPlasma(cols: number, rows: number, time: number, scale: number, sp
       const u = x / Math.max(cols - 1, 1)
       const v = y / Math.max(rows - 1, 1)
 
-      let val = Math.sin(u * s * 10 + t) * Math.sin(v * s * 10 - t * 0.7)
-      val += Math.sin((u + v) * s * 7 + t * 1.3) * 0.5
-      if (complexity > 2) val += Math.cos(Math.sqrt(u * u + v * v) * s * 15 - t * 0.9) * 0.3
-      if (complexity > 4) val += simplex3(u * s * 5, v * s * 5, t * 0.5) * 0.4
-      val = (val + 2) / 4  // normalize roughly to 0-1
+      // spatial frequency is purely scale-driven, time only shifts phase
+      let val = Math.sin(u * freq + t * 0.7) * Math.sin(v * freq - t * 0.5)
+      val += Math.sin((u + v) * freq * 0.7 + t * 0.9) * 0.5
+      if (complexity > 2) val += Math.cos(Math.sqrt(u * u + v * v) * freq * 1.5 - t * 0.6) * 0.3
+      if (complexity > 4) val += simplex3(u * freq * 0.5, v * freq * 0.5, t * 0.4) * 0.4
+      val = (val + 2) / 4
 
       brightness[i] = Math.max(0, Math.min(1, val))
-      const hue = (val * 0.3 + t * 0.05 + u * 0.1) % 1
+      const hue = (val * 0.3 + t * 0.03 + u * 0.1) % 1
       colors[i] = hsv2rgb(hue, 0.8, Math.max(0.1, val))
     }
   }
@@ -136,11 +137,11 @@ function fieldVortex(cols: number, rows: number, time: number, scale: number, sp
       const dist = Math.sqrt(u * u + v * v)
       const angle = Math.atan2(v, u)
 
-      const twisted = angle + dist * twist * Math.sin(t * 0.5)
-      const val = Math.sin(twisted * 4 - t * 2) * 0.5 + 0.5
+      const twisted = angle + dist * twist * Math.sin(t * 0.4)
+      const val = Math.sin(twisted * scale * 1.5 + t * 0.8) * 0.5 + 0.5
 
       brightness[i] = Math.max(0, Math.min(1, val * (1 - dist * 0.3)))
-      const hue = (twisted / (2 * Math.PI) + dist * 0.3 + t * 0.04) % 1
+      const hue = (twisted / (2 * Math.PI) + dist * 0.3 + t * 0.03) % 1
       colors[i] = hsv2rgb(Math.abs(hue) % 1, 0.8, Math.max(0.05, val))
     }
   }
@@ -162,8 +163,8 @@ function fieldTunnel(cols: number, rows: number, time: number, scale: number, sp
       const angle = Math.atan2(v, u)
 
       const depth = 1.0 / dist * scale * 0.3
-      const v1 = Math.sin(depth - t * 3) * 0.5 + 0.5
-      const v2 = Math.sin(angle * complexity + depth * 0.5 - t * 2) * 0.3 + 0.5
+      const v1 = Math.sin(depth + t * 1.2) * 0.5 + 0.5
+      const v2 = Math.sin(angle * complexity + depth * 0.5 + t * 0.8) * 0.3 + 0.5
       const val = v1 * 0.6 + v2 * 0.4
 
       brightness[i] = Math.max(0, Math.min(1, val))
@@ -203,7 +204,7 @@ function fieldRipple(cols: number, rows: number, time: number, scale: number, sp
         const dx = u - sx
         const dy = v - sy
         const d = Math.sqrt(dx * dx + dy * dy)
-        val += Math.sin(d * freq * 30 - t * 4) * Math.exp(-d * damping * 30) * 0.5
+        val += Math.sin(d * freq * 30 + t * 1.5) * Math.exp(-d * damping * 30) * 0.5
       }
       val = val / nSources + 0.5
 
@@ -234,7 +235,7 @@ function fieldSineField(cols: number, rows: number, time: number, scale: number,
         const freqX = s * (3 + l * 2.7)
         const freqY = s * (4 + l * 1.9)
         const sp = 0.3 + l * 0.2
-        val += Math.sin(u * freqX + t * sp) * Math.cos(v * freqY - t * sp * 0.7) / layers
+        val += Math.sin(u * freqX + t * sp * 0.5) * Math.cos(v * freqY + t * sp * 0.35) / layers
       }
       val = val * 0.5 + 0.5
 
