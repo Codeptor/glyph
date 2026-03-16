@@ -1,6 +1,7 @@
 import { useStore } from '@/store/useStore'
 import { CollapsibleSection } from '@/components/ui/collapsible-section'
 import { Button } from '@/components/ui/button'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Eye, EyeOff, Plus, Minus, Copy } from 'lucide-react'
 import { useRef } from 'react'
 import type { BlendMode } from '@/types'
@@ -106,19 +107,23 @@ export function LayerStack() {
                 {layer.name}
               </span>
 
-              <select
-                value={layer.blendMode}
-                onChange={(e) => {
-                  e.stopPropagation()
-                  handleBlendChange(e.target.value, i)
-                }}
-                onClick={(e) => e.stopPropagation()}
-                className="h-5 w-16 bg-zinc-800 border border-zinc-700 rounded text-[10px] text-zinc-400 cursor-crosshair appearance-none px-1 focus:outline-none"
-              >
-                {BLEND_MODES.map((mode) => (
-                  <option key={mode} value={mode}>{BLEND_LABELS[mode]}</option>
-                ))}
-              </select>
+              <div onClick={(e) => e.stopPropagation()}>
+                <Select
+                  value={layer.blendMode}
+                  onValueChange={(v) => handleBlendChange(v, i)}
+                >
+                  <SelectTrigger className="h-5 w-[72px] bg-zinc-800 border-zinc-700 text-[10px] text-zinc-400 cursor-crosshair px-1.5 py-0">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {BLEND_MODES.map((mode) => (
+                      <SelectItem key={mode} value={mode} className="text-[11px]">
+                        {BLEND_LABELS[mode]}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
 
               <button
                 className={`p-0.5 rounded transition-colors ${
