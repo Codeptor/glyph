@@ -22,6 +22,17 @@ import type {
   RetroDuotone,
   TerminalCharset,
   LetterSet,
+  SourceType,
+  GenerativeField,
+  BlendMode,
+  MaskType,
+  MaskConfig,
+  FeedbackConfig,
+  TonemapConfig,
+  ParticleType,
+  ParticleConfig,
+  ShaderType,
+  ShaderEntry,
 } from '@/types'
 import {
   loadGallery,
@@ -50,6 +61,10 @@ const BRAILLE_VARIANTS: BrailleVariant[] = ['standard', 'sparse', 'dense']
 const RETRO_DUOTONES: RetroDuotone[] = ['amber-classic', 'cyan-night', 'violet-haze', 'lime-pulse', 'mono-ice']
 const TERMINAL_CHARSETS: TerminalCharset[] = ['101010', 'brackets', 'dollar', 'mixed', 'pipes']
 const LETTER_SETS: LetterSet[] = ['alphabet', 'lowercase', 'mixed', 'symbols']
+const SOURCE_TYPES: SourceType[] = ['image', 'camera', 'generative']
+const GENERATIVE_FIELDS: GenerativeField[] = ['plasma', 'rings', 'spiral', 'vortex', 'tunnel', 'ripple', 'sine-field', 'domain-warp']
+const BLEND_MODES: BlendMode[] = ['normal', 'add', 'screen', 'multiply', 'overlay', 'softlight', 'hardlight', 'difference', 'exclusion', 'colordodge', 'colorburn', 'linearlight', 'vividlight', 'pin_light', 'hard_mix', 'lighten', 'darken', 'grain_extract', 'grain_merge', 'subtract']
+const PARTICLE_TYPES: ParticleType[] = ['explosion', 'embers', 'flow-field', 'boids', 'orbit']
 
 function pick<T>(arr: readonly T[]): T {
   return arr[Math.floor(Math.random() * arr.length)]
@@ -115,6 +130,47 @@ export function createDefaultLayer(name = 'Layer 1'): Layer {
     hoverStrength: 24,
     mouseAreaSize: 180,
     mouseSpread: 1,
+    // v2: source
+    sourceType: 'image',
+    generativeField: 'plasma',
+    generativeSpeed: 1,
+    generativeScale: 1,
+    generativeComplexity: 3,
+    // v2: composition
+    blendMode: 'normal',
+    mask: {
+      type: 'none',
+      feather: 0.05,
+      invert: false,
+      centerX: 0.5,
+      centerY: 0.5,
+      radius: 0.4,
+      innerRadius: 0.2,
+      animSpeed: 1,
+      animDirection: 'in' as const,
+    },
+    feedback: {
+      enabled: false,
+      decay: 0.8,
+      blendMode: 'screen' as BlendMode,
+      opacity: 0.3,
+      transform: 'none' as const,
+      transformAmount: 0.02,
+      hueShift: 0,
+    },
+    // v2: particles
+    particles: {
+      enabled: false,
+      type: 'embers' as ParticleType,
+      count: 200,
+      speed: 1,
+      size: 2,
+      color: '#ffffff',
+      lifetime: 3,
+      gravity: 0.1,
+    },
+    // v2: shader chain
+    shaderChain: [],
   }
 }
 
@@ -135,6 +191,9 @@ interface AppState {
   leftPanel: LeftPanel
   themeMode: ThemeMode
   sidebarHidden: boolean
+  leftSidebarHidden: boolean
+
+  tonemapConfig: TonemapConfig
 
   galleryAssets: GalleryAsset[]
   templateAssets: TemplateAsset[]
@@ -160,6 +219,11 @@ interface AppState {
   setLeftPanel: (panel: LeftPanel) => void
   setThemeMode: (mode: ThemeMode) => void
   setSidebarHidden: (hidden: boolean) => void
+  setLeftSidebarHidden: (hidden: boolean) => void
+
+  updateTonemapConfig: (config: Partial<TonemapConfig>) => void
+  reorderLayers: (fromIndex: number, toIndex: number) => void
+  duplicateLayer: (index: number) => void
 
   addGalleryAsset: (asset: GalleryAsset) => void
   removeGalleryAsset: (id: string) => void
@@ -198,6 +262,9 @@ export const useStore = create<AppState>((set, get) => ({
   leftPanel: null,
   themeMode: loadPersistedTheme(),
   sidebarHidden: false,
+  leftSidebarHidden: false,
+
+  tonemapConfig: { enabled: false, gamma: 0.75 },
 
   galleryAssets: [],
   templateAssets: [],
@@ -248,6 +315,29 @@ export const useStore = create<AppState>((set, get) => ({
   setLeftPanel: (panel) => set({ leftPanel: panel }),
   setThemeMode: (mode) => set({ themeMode: mode }),
   setSidebarHidden: (hidden) => set({ sidebarHidden: hidden }),
+  setLeftSidebarHidden: (hidden) => set({ leftSidebarHidden: hidden }),
+
+  updateTonemapConfig: (config) =>
+    set((state) => ({ tonemapConfig: { ...state.tonemapConfig, ...config } })),
+
+  reorderLayers: (fromIndex, toIndex) =>
+    set((state) => {
+      const layers = [...state.layers]
+      const [moved] = layers.splice(fromIndex, 1)
+      layers.splice(toIndex, 0, moved)
+      const activeLayerIndex = toIndex
+      return { layers, activeLayerIndex }
+    }),
+
+  duplicateLayer: (index) =>
+    set((state) => {
+      const source = state.layers[index]
+      if (!source) return state
+      const dup = { ...source, id: uid(), name: `${source.name} copy` }
+      const layers = [...state.layers]
+      layers.splice(index + 1, 0, dup)
+      return { layers, activeLayerIndex: index + 1 }
+    }),
 
   addGalleryAsset: (asset) => {
     set((state) => ({ galleryAssets: [...state.galleryAssets, asset] }))
@@ -314,6 +404,12 @@ export const useStore = create<AppState>((set, get) => ({
       hoverStrength: Math.round(rand(5, 50)),
       mouseAreaSize: Math.round(rand(50, 400)),
       mouseSpread: rand(0.2, 3),
+      sourceType: 'image',
+      generativeField: pick(GENERATIVE_FIELDS),
+      generativeSpeed: rand(0.2, 3),
+      generativeScale: rand(0.3, 3),
+      generativeComplexity: Math.round(rand(1, 6)),
+      blendMode: pick(BLEND_MODES),
     }
     get().updateActiveLayer(updates)
   },
