@@ -76,9 +76,9 @@ export function SourcePanel() {
             <SliderField
               label="Speed"
               value={generativeSpeed}
-              min={0.1}
-              max={5}
-              step={0.1}
+              min={0.01}
+              max={3}
+              step={0.01}
               onChange={(v) => updateActiveLayer({ generativeSpeed: v })}
             />
             <SliderField

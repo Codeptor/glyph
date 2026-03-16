@@ -89,21 +89,27 @@ export function ExportPopover({ onClose }: Props) {
     downloadFile(html, `glyph-${Date.now()}.html`, 'text/html')
   }
 
-  const handleReactDownload = () => {
+  const handleReactDownload = async () => {
     const renderer = getGlobalRenderer()
     if (!renderer) return
+    const sourceDataUrl = renderer.exportSourceImage()
+    if (!sourceDataUrl) return
     const canvas = renderer.getCanvas()
-    const compositeDataUrl = canvas.toDataURL('image/png')
-    const layerImages = renderer.exportLayerImages(layers, backgroundColor)
 
-    const tsx = generateReactExport({
-      layerImages,
-      compositeDataUrl,
+    const blob = await generateReactExport({
+      sourceDataUrl,
+      layers,
       backgroundColor,
+      aspectRatio,
       width: canvas.width,
       height: canvas.height,
     })
-    downloadFile(tsx, `AsciiArt.tsx`, 'text/typescript')
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = 'AsciiArt.zip'
+    a.click()
+    URL.revokeObjectURL(url)
   }
 
   const handleCopyJson = () => {
@@ -193,10 +199,10 @@ export function ExportPopover({ onClose }: Props) {
 
           <TabsContent value="react" className="space-y-4 mt-4">
             <div className="rounded-md bg-muted/50 px-4 py-3 text-xs text-muted-foreground space-y-1">
-              <p>Generates a standalone React component (<code className="text-foreground/80">AsciiArt.tsx</code>) with the current frame embedded.</p>
-              <p>Drop it into any React project:</p>
+              <p>Exports a live component with the full rendering engine — animations, FX, and mouse interactions included.</p>
+              <p>Unzip into any React + Vite project:</p>
               <pre className="mt-2 rounded bg-background p-2 text-[10px] font-mono text-foreground/70">
-{`import { AsciiArt } from './AsciiArt'
+{`import { AsciiArt } from './AsciiArt/AsciiArt'
 
 <AsciiArt className="rounded-lg" />`}
               </pre>
@@ -206,7 +212,7 @@ export function ExportPopover({ onClose }: Props) {
               onClick={handleReactDownload}
             >
               <Download className="h-4 w-4" />
-              Download AsciiArt.tsx
+              Download AsciiArt.zip
             </Button>
           </TabsContent>
 

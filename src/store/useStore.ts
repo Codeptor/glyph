@@ -133,7 +133,7 @@ export function createDefaultLayer(name = 'Layer 1'): Layer {
     // v2: source
     sourceType: 'image',
     generativeField: 'plasma',
-    generativeSpeed: 1,
+    generativeSpeed: 0.5,
     generativeScale: 1,
     generativeComplexity: 3,
     // v2: composition

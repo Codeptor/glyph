@@ -1,4 +1,11 @@
+import JSZip from 'jszip'
 import type { Layer } from '@/types'
+
+// Import all engine source files as raw strings at build time
+const engineSources = import.meta.glob(
+  ['../engine/**/*.ts', '../types/index.ts'],
+  { query: '?raw', eager: true, import: 'default' },
+) as Record<string, string>
 
 interface ExportConfig {
   layers: Layer[]
@@ -9,17 +16,11 @@ interface ExportConfig {
   height: number
 }
 
-interface LayerImage {
-  dataUrl: string
-  name: string
-  width: number
-  height: number
-}
-
 interface ReactExportConfig {
-  layerImages: LayerImage[]
-  compositeDataUrl: string
+  sourceDataUrl: string
+  layers: Layer[]
   backgroundColor: string
+  aspectRatio: string
   width: number
   height: number
 }
@@ -60,22 +61,62 @@ export function generateHtmlExport(config: ExportConfig): string {
 </html>`
 }
 
-export function generateReactExport(config: ReactExportConfig): string {
-  const { layerImages, compositeDataUrl, backgroundColor, width, height } = config
-
-  if (layerImages.length <= 1) {
-    return generateSingleLayerTsx(compositeDataUrl, backgroundColor, width, height)
-  }
-  return generateMultiLayerTsx(layerImages, compositeDataUrl, backgroundColor, width, height)
+function dataUrlToUint8Array(dataUrl: string): Uint8Array {
+  const base64 = dataUrl.split(',')[1]
+  const binary = atob(base64)
+  const bytes = new Uint8Array(binary.length)
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i)
+  return bytes
 }
 
-function generateSingleLayerTsx(
-  dataUrl: string,
+function getExportPath(globKey: string): string {
+  if (globKey.startsWith('../types/')) return 'engine/types.ts'
+  return globKey.replace('../', '')
+}
+
+function rewriteImports(content: string, exportPath: string): string {
+  const isInStyles = exportPath.includes('/styles/')
+  if (isInStyles) {
+    return content
+      .replace(/'@\/types'/g, "'../types'")
+      .replace(/'@\/engine\//g, "'../")
+  }
+  return content.replace(/'@\/types'/g, "'./types'")
+}
+
+export async function generateReactExport(config: ReactExportConfig): Promise<Blob> {
+  const { sourceDataUrl, layers, backgroundColor, aspectRatio, width, height } = config
+  const zip = new JSZip()
+  const folder = zip.folder('AsciiArt')!
+
+  // Source image
+  folder.file('source.png', dataUrlToUint8Array(sourceDataUrl))
+
+  // Engine source files with rewritten path aliases
+  for (const [globKey, content] of Object.entries(engineSources)) {
+    const exportPath = getExportPath(globKey)
+    folder.file(exportPath, rewriteImports(content, exportPath))
+  }
+
+  // Wrapper component with baked-in layer config
+  const aspectCss = aspectRatio === 'original'
+    ? `${width} / ${height}`
+    : aspectRatio.replace(':', ' / ')
+
+  folder.file('AsciiArt.tsx', generateWrapperTsx(layers, backgroundColor, aspectCss))
+
+  return zip.generateAsync({ type: 'blob' })
+}
+
+function generateWrapperTsx(
+  layers: Layer[],
   backgroundColor: string,
-  width: number,
-  height: number,
+  aspectRatio: string,
 ): string {
   return `import { useEffect, useRef } from 'react'
+import { AsciiRenderer } from './engine/AsciiRenderer'
+import type { Layer } from './engine/types'
+import sourceSrc from './source.png'
 
 interface AsciiArtProps {
   className?: string
@@ -83,7 +124,8 @@ interface AsciiArtProps {
 }
 
 /**
- * Self-contained ASCII art component exported from Glyph.
+ * Live ASCII art component exported from Glyph.
+ * Includes the full rendering engine with animations and mouse interactions.
  *
  * Usage:
  *   <AsciiArt />
@@ -91,175 +133,72 @@ interface AsciiArtProps {
  *   <AsciiArt style={{ maxWidth: 800 }} />
  */
 export function AsciiArt({ className, style }: AsciiArtProps) {
-  const canvasRef = useRef<HTMLCanvasElement>(null)
+  const containerRef = useRef<HTMLDivElement>(null)
+  const rendererRef = useRef<AsciiRenderer | null>(null)
 
   useEffect(() => {
-    const canvas = canvasRef.current
-    if (!canvas) return
-    const ctx = canvas.getContext('2d')
-    if (!ctx) return
+    const container = containerRef.current
+    if (!container) return
+
+    const renderer = new AsciiRenderer()
+    rendererRef.current = renderer
+    const canvas = renderer.getCanvas()
+    canvas.style.width = '100%'
+    canvas.style.height = '100%'
+    container.appendChild(canvas)
 
     const img = new Image()
-    img.onload = () => ctx.drawImage(img, 0, 0, ${width}, ${height})
-    img.src = FRAME_DATA
+    img.onload = () => {
+      renderer.setSource(img)
+      const { width, height } = container.getBoundingClientRect()
+      renderer.resize(Math.round(width), Math.round(height))
+      renderer.startLoop(LAYERS, '${backgroundColor}', 'original', () => {})
+    }
+    img.src = sourceSrc
+
+    const ro = new ResizeObserver(([entry]) => {
+      const { width, height } = entry.contentRect
+      renderer.resize(Math.round(width), Math.round(height))
+    })
+    ro.observe(container)
+
+    return () => {
+      ro.disconnect()
+      renderer.destroy()
+      canvas.remove()
+    }
   }, [])
 
-  return (
-    <canvas
-      ref={canvasRef}
-      width={${width}}
-      height={${height}}
-      className={className}
-      style={{
-        background: '${backgroundColor}',
-        maxWidth: '100%',
-        height: 'auto',
-        ...style,
-      }}
-    />
-  )
-}
+  const handleMouseMove = (e: React.MouseEvent) => {
+    const renderer = rendererRef.current
+    if (!renderer) return
+    const rect = renderer.getCanvas().getBoundingClientRect()
+    renderer.setMouse(e.clientX - rect.left, e.clientY - rect.top)
+  }
 
-// Glyph frame data (base64-encoded PNG)
-const FRAME_DATA = ${JSON.stringify(dataUrl)}
-`
-}
-
-function generateMultiLayerTsx(
-  layerImages: LayerImage[],
-  compositeDataUrl: string,
-  backgroundColor: string,
-  width: number,
-  height: number,
-): string {
-  const layerConsts = layerImages
-    .map((l, i) => `  { name: ${JSON.stringify(l.name)}, src: LAYER_${i}_DATA },`)
-    .join('\n')
-
-  const layerDataConsts = layerImages
-    .map((l, i) => `const LAYER_${i}_DATA = ${JSON.stringify(l.dataUrl)}`)
-    .join('\n\n')
-
-  return `import { useEffect, useRef } from 'react'
-
-interface AsciiArtProps {
-  className?: string
-  style?: React.CSSProperties
-  /** Render only the composite frame instead of individual layers */
-  composite?: boolean
-}
-
-/**
- * Multi-layer ASCII art component exported from Glyph.
- * Contains ${layerImages.length} layers that are composited together.
- *
- * Usage:
- *   <AsciiArt />
- *   <AsciiArt composite />
- *   <AsciiArt className="rounded-lg shadow-xl" />
- *   <AsciiArt style={{ maxWidth: 800 }} />
- */
-export function AsciiArt({ className, style, composite = false }: AsciiArtProps) {
-  if (composite) {
-    return (
-      <CompositeFrame
-        className={className}
-        style={style}
-      />
-    )
+  const handleMouseLeave = () => {
+    rendererRef.current?.setMouse(-1, -1)
   }
 
   return (
     <div
+      ref={containerRef}
       className={className}
       style={{
-        position: 'relative',
-        width: ${width},
-        maxWidth: '100%',
         background: '${backgroundColor}',
+        width: '100%',
+        aspectRatio: '${aspectRatio}',
+        cursor: 'crosshair',
+        overflow: 'hidden',
         ...style,
       }}
-    >
-      {LAYERS.map((layer, i) => (
-        <LayerCanvas
-          key={i}
-          src={layer.src}
-          isFirst={i === 0}
-        />
-      ))}
-    </div>
-  )
-}
-
-function LayerCanvas({ src, isFirst }: { src: string; isFirst: boolean }) {
-  const canvasRef = useRef<HTMLCanvasElement>(null)
-
-  useEffect(() => {
-    const canvas = canvasRef.current
-    if (!canvas) return
-    const ctx = canvas.getContext('2d')
-    if (!ctx) return
-
-    const img = new Image()
-    img.onload = () => ctx.drawImage(img, 0, 0, ${width}, ${height})
-    img.src = src
-  }, [src])
-
-  return (
-    <canvas
-      ref={canvasRef}
-      width={${width}}
-      height={${height}}
-      style={{
-        display: 'block',
-        maxWidth: '100%',
-        height: 'auto',
-        ...(isFirst ? {} : { position: 'absolute', top: 0, left: 0 }),
-      }}
+      onMouseMove={handleMouseMove}
+      onMouseLeave={handleMouseLeave}
     />
   )
 }
 
-function CompositeFrame({ className, style }: { className?: string; style?: React.CSSProperties }) {
-  const canvasRef = useRef<HTMLCanvasElement>(null)
-
-  useEffect(() => {
-    const canvas = canvasRef.current
-    if (!canvas) return
-    const ctx = canvas.getContext('2d')
-    if (!ctx) return
-
-    const img = new Image()
-    img.onload = () => ctx.drawImage(img, 0, 0, ${width}, ${height})
-    img.src = COMPOSITE_DATA
-  }, [])
-
-  return (
-    <canvas
-      ref={canvasRef}
-      width={${width}}
-      height={${height}}
-      className={className}
-      style={{
-        background: '${backgroundColor}',
-        maxWidth: '100%',
-        height: 'auto',
-        ...style,
-      }}
-    />
-  )
-}
-
-// Layer definitions (${layerImages.length} layers)
-const LAYERS = [
-${layerConsts}
-]
-
-// Composite frame data (all layers merged)
-const COMPOSITE_DATA = ${JSON.stringify(compositeDataUrl)}
-
-// Individual layer data (base64-encoded PNG)
-${layerDataConsts}
+const LAYERS: Layer[] = ${JSON.stringify(layers, null, 2)}
 `
 }
 

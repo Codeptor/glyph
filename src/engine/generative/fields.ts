@@ -35,7 +35,7 @@ function fieldPlasma(cols: number, rows: number, time: number, scale: number, sp
   const total = cols * rows
   const brightness = new Float32Array(total)
   const colors: Array<[number, number, number]> = new Array(total)
-  const t = time * speed
+  const t = time * speed * 0.3
   const s = scale * 0.1
 
   for (let y = 0; y < rows; y++) {
@@ -62,7 +62,7 @@ function fieldRings(cols: number, rows: number, time: number, scale: number, spe
   const total = cols * rows
   const brightness = new Float32Array(total)
   const colors: Array<[number, number, number]> = new Array(total)
-  const t = time * speed
+  const t = time * speed * 0.3
   const nRings = Math.round(4 + complexity * 3)
 
   for (let y = 0; y < rows; y++) {
@@ -92,7 +92,7 @@ function fieldSpiral(cols: number, rows: number, time: number, scale: number, sp
   const total = cols * rows
   const brightness = new Float32Array(total)
   const colors: Array<[number, number, number]> = new Array(total)
-  const t = time * speed
+  const t = time * speed * 0.3
   const nArms = Math.max(1, Math.round(complexity))
   const tightness = scale * 0.4
 
@@ -125,7 +125,7 @@ function fieldVortex(cols: number, rows: number, time: number, scale: number, sp
   const total = cols * rows
   const brightness = new Float32Array(total)
   const colors: Array<[number, number, number]> = new Array(total)
-  const t = time * speed
+  const t = time * speed * 0.3
   const twist = scale * 0.8
 
   for (let y = 0; y < rows; y++) {
@@ -151,7 +151,7 @@ function fieldTunnel(cols: number, rows: number, time: number, scale: number, sp
   const total = cols * rows
   const brightness = new Float32Array(total)
   const colors: Array<[number, number, number]> = new Array(total)
-  const t = time * speed
+  const t = time * speed * 0.3
 
   for (let y = 0; y < rows; y++) {
     for (let x = 0; x < cols; x++) {
@@ -178,7 +178,7 @@ function fieldRipple(cols: number, rows: number, time: number, scale: number, sp
   const total = cols * rows
   const brightness = new Float32Array(total)
   const colors: Array<[number, number, number]> = new Array(total)
-  const t = time * speed
+  const t = time * speed * 0.3
   const nSources = Math.max(1, Math.round(complexity))
   const freq = scale * 0.3
   const damping = 0.02 / scale
@@ -219,7 +219,7 @@ function fieldSineField(cols: number, rows: number, time: number, scale: number,
   const total = cols * rows
   const brightness = new Float32Array(total)
   const colors: Array<[number, number, number]> = new Array(total)
-  const t = time * speed
+  const t = time * speed * 0.3
   const s = scale * 0.1
   const layers = Math.max(2, Math.round(complexity + 1))
 
@@ -250,7 +250,7 @@ function fieldDomainWarp(cols: number, rows: number, time: number, scale: number
   const total = cols * rows
   const brightness = new Float32Array(total)
   const colors: Array<[number, number, number]> = new Array(total)
-  const t = time * speed
+  const t = time * speed * 0.3
   const s = scale * 0.8
   const octaves = Math.max(1, Math.round(complexity))
 
