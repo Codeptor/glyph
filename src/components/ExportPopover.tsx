@@ -21,18 +21,21 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Download, Copy, Check, FileCode, FileImage, FileJson, Save } from 'lucide-react'
+import { Download, Copy, Check, FileCode, FileImage, FileJson, Film, Save } from 'lucide-react'
+import { exportVideo } from '@/lib/videoExport'
+import type { VideoResolution } from '@/lib/videoExport'
 
 interface Props {
   onClose: () => void
 }
 
-type ExportTab = 'png' | 'html' | 'react' | 'json'
+type ExportTab = 'png' | 'video' | 'html' | 'react' | 'json'
 
 export function ExportPopover({ onClose }: Props) {
   const layers = useStore((s) => s.layers)
   const backgroundColor = useStore((s) => s.backgroundColor)
   const aspectRatio = useStore((s) => s.aspectRatio)
+  const tonemapConfig = useStore((s) => s.tonemapConfig)
   const exportPreset = useStore((s) => s.exportPreset)
   const savePreset = useStore((s) => s.savePreset)
 
@@ -40,6 +43,11 @@ export function ExportPopover({ onClose }: Props) {
   const [copied, setCopied] = useState(false)
   const [pngScale, setPngScale] = useState('1')
   const [saveName, setSaveName] = useState('')
+  const [videoRes, setVideoRes] = useState<string>('720')
+  const [videoDuration, setVideoDuration] = useState<string>('5')
+  const [videoFps, setVideoFps] = useState<string>('30')
+  const [recording, setRecording] = useState(false)
+  const [progress, setProgress] = useState(0)
 
   const json = exportPreset()
 
@@ -112,6 +120,36 @@ export function ExportPopover({ onClose }: Props) {
     URL.revokeObjectURL(url)
   }
 
+  const handleVideoRecord = async () => {
+    const renderer = getGlobalRenderer()
+    if (!renderer) return
+    const source = renderer.getSource()
+    if (!source) return
+
+    setRecording(true)
+    setProgress(0)
+
+    const { blob, ext } = await exportVideo({
+      source,
+      layers,
+      backgroundColor,
+      aspectRatio,
+      tonemapConfig,
+      resolution: parseInt(videoRes) as VideoResolution,
+      duration: parseInt(videoDuration),
+      fps: parseInt(videoFps),
+      onProgress: setProgress,
+    })
+
+    setRecording(false)
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `glyph-${Date.now()}.${ext}`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
   const handleCopyJson = () => {
     navigator.clipboard.writeText(json)
     setCopied(true)
@@ -139,10 +177,14 @@ export function ExportPopover({ onClose }: Props) {
         </DialogHeader>
 
         <Tabs value={tab} onValueChange={(v) => setTab(v as ExportTab)}>
-          <TabsList className="w-full grid grid-cols-4">
+          <TabsList className="w-full grid grid-cols-5">
             <TabsTrigger value="png" className="text-xs cursor-crosshair gap-1.5">
               <FileImage className="h-3 w-3" />
               PNG
+            </TabsTrigger>
+            <TabsTrigger value="video" className="text-xs cursor-crosshair gap-1.5">
+              <Film className="h-3 w-3" />
+              Video
             </TabsTrigger>
             <TabsTrigger value="html" className="text-xs cursor-crosshair gap-1.5">
               <FileCode className="h-3 w-3" />
@@ -180,6 +222,87 @@ export function ExportPopover({ onClose }: Props) {
             >
               <Download className="h-4 w-4" />
               Download PNG
+            </Button>
+          </TabsContent>
+
+          <TabsContent value="video" className="space-y-4 mt-4">
+            <div className="grid grid-cols-3 gap-3">
+              <div className="space-y-1.5">
+                <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                  Resolution
+                </Label>
+                <Select value={videoRes} onValueChange={setVideoRes} disabled={recording}>
+                  <SelectTrigger className="cursor-crosshair text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="480">480p</SelectItem>
+                    <SelectItem value="720">720p</SelectItem>
+                    <SelectItem value="1080">1080p</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                  Duration
+                </Label>
+                <Select value={videoDuration} onValueChange={setVideoDuration} disabled={recording}>
+                  <SelectTrigger className="cursor-crosshair text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="3">3s</SelectItem>
+                    <SelectItem value="5">5s</SelectItem>
+                    <SelectItem value="10">10s</SelectItem>
+                    <SelectItem value="15">15s</SelectItem>
+                    <SelectItem value="30">30s</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                  FPS
+                </Label>
+                <Select value={videoFps} onValueChange={setVideoFps} disabled={recording}>
+                  <SelectTrigger className="cursor-crosshair text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="30">30</SelectItem>
+                    <SelectItem value="60">60</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {recording && (
+              <div className="space-y-1.5">
+                <div className="flex justify-between text-[10px] text-muted-foreground">
+                  <span>Recording...</span>
+                  <span>{Math.round(progress * 100)}%</span>
+                </div>
+                <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+                  <div
+                    className="h-full bg-primary transition-all duration-150"
+                    style={{ width: `${progress * 100}%` }}
+                  />
+                </div>
+              </div>
+            )}
+
+            <Button
+              className="w-full cursor-crosshair gap-2"
+              onClick={handleVideoRecord}
+              disabled={recording}
+            >
+              {recording ? (
+                <>Recording {Math.round(progress * 100)}%</>
+              ) : (
+                <>
+                  <Film className="h-4 w-4" />
+                  Record Video
+                </>
+              )}
             </Button>
           </TabsContent>
 

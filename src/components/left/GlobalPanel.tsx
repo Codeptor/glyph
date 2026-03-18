@@ -17,7 +17,11 @@ const ASPECTS: { value: AspectRatio; label: string }[] = [
   { value: '9:16', label: '9:16' },
 ]
 
-export function GlobalPanel() {
+interface GlobalPanelProps {
+  onExport?: () => void
+}
+
+export function GlobalPanel({ onExport }: GlobalPanelProps) {
   const tonemapConfig = useStore((s) => s.tonemapConfig)
   const updateTonemapConfig = useStore((s) => s.updateTonemapConfig)
   const backgroundColor = useStore((s) => s.backgroundColor)
@@ -102,7 +106,7 @@ export function GlobalPanel() {
 
         {/* Actions */}
         <div className="flex items-center gap-2 border-t border-zinc-800 pt-2">
-          <Button variant="outline" size="xs" className="flex-1 text-[11px] cursor-crosshair">
+          <Button variant="outline" size="xs" className="flex-1 text-[11px] cursor-crosshair" onClick={onExport}>
             Export
           </Button>
           <Button variant="outline" size="xs" className="flex-1 text-[11px] cursor-crosshair">

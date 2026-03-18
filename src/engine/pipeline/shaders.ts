@@ -82,7 +82,7 @@ function shPosterize(ctx: CanvasRenderingContext2D, w: number, h: number, s: num
   ctx.putImageData(img, 0, 0)
 }
 
-function shHueRotate(ctx: CanvasRenderingContext2D, w: number, h: number, s: number, t: number): void {
+function shHueRotate(ctx: CanvasRenderingContext2D, _w: number, _h: number, s: number, t: number): void {
   const angle = (s * 360 + t * 30) % 360
   ctx.filter = `hue-rotate(${angle}deg)`
   ctx.drawImage(ctx.canvas, 0, 0)
@@ -209,7 +209,7 @@ function shRadialBlur(ctx: CanvasRenderingContext2D, w: number, h: number, s: nu
   ctx.restore()
 }
 
-function shSoftFocus(ctx: CanvasRenderingContext2D, w: number, h: number, s: number): void {
+function shSoftFocus(ctx: CanvasRenderingContext2D, _w: number, _h: number, s: number): void {
   const blur = Math.round(1 + s * 6)
   ctx.save()
   ctx.globalAlpha = s * 0.4

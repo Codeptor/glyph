@@ -111,7 +111,7 @@ export class ParticleSystem {
     this.particles = alive
   }
 
-  render(ctx: CanvasRenderingContext2D, w: number, h: number): void {
+  render(ctx: CanvasRenderingContext2D, _w: number, _h: number): void {
     if (!this.config.enabled || this.particles.length === 0) return
 
     const [cr, cg, cb] = hexToRgb(this.config.color)
@@ -195,7 +195,7 @@ export class ParticleSystem {
     }
   }
 
-  private _updateBoid(p: Particle, w: number, h: number, dt: number): void {
+  private _updateBoid(p: Particle, w: number, h: number, _dt: number): void {
     const perception = Math.min(w, h) * 0.08
     const maxSpeed = this.config.speed * 60
     let sepX = 0, sepY = 0, aliX = 0, aliY = 0, cohX = 0, cohY = 0

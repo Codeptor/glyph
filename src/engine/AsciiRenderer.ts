@@ -32,6 +32,7 @@ export class AsciiRenderer {
   private particleSystems: Map<string, ParticleSystem> = new Map()
   private tonemapConfig: TonemapConfig = { enabled: false, gamma: 0.75 }
   private lastTime: number = 0
+  private _timeOverride: number | null = null
 
   constructor() {
     this.canvas = document.createElement('canvas')
@@ -50,6 +51,10 @@ export class AsciiRenderer {
     return this.canvas
   }
 
+  getSource(): HTMLImageElement | HTMLVideoElement | null {
+    return this.source
+  }
+
   setSource(el: HTMLImageElement | HTMLVideoElement | null): void {
     this.source = el
   }
@@ -61,6 +66,10 @@ export class AsciiRenderer {
 
   setTonemapConfig(config: TonemapConfig): void {
     this.tonemapConfig = config
+  }
+
+  setTimeOverride(seconds: number | null): void {
+    this._timeOverride = seconds
   }
 
   resize(w: number, h: number): void {
@@ -146,7 +155,7 @@ export class AsciiRenderer {
     const { width, height } = this.canvas
     if (width === 0 || height === 0) return
 
-    const time = (performance.now() - this.startTime) / 1000
+    const time = this._timeOverride ?? (performance.now() - this.startTime) / 1000
     const dt = time - this.lastTime
     this.lastTime = time
 

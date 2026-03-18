@@ -22,17 +22,10 @@ import type {
   RetroDuotone,
   TerminalCharset,
   LetterSet,
-  SourceType,
   GenerativeField,
   BlendMode,
-  MaskType,
-  MaskConfig,
-  FeedbackConfig,
   TonemapConfig,
   ParticleType,
-  ParticleConfig,
-  ShaderType,
-  ShaderEntry,
 } from '@/types'
 import {
   loadGallery,
@@ -61,10 +54,8 @@ const BRAILLE_VARIANTS: BrailleVariant[] = ['standard', 'sparse', 'dense']
 const RETRO_DUOTONES: RetroDuotone[] = ['amber-classic', 'cyan-night', 'violet-haze', 'lime-pulse', 'mono-ice']
 const TERMINAL_CHARSETS: TerminalCharset[] = ['101010', 'brackets', 'dollar', 'mixed', 'pipes']
 const LETTER_SETS: LetterSet[] = ['alphabet', 'lowercase', 'mixed', 'symbols']
-const SOURCE_TYPES: SourceType[] = ['image', 'camera', 'generative']
 const GENERATIVE_FIELDS: GenerativeField[] = ['plasma', 'rings', 'spiral', 'vortex', 'tunnel', 'ripple', 'sine-field', 'domain-warp']
 const BLEND_MODES: BlendMode[] = ['normal', 'add', 'screen', 'multiply', 'overlay', 'softlight', 'hardlight', 'difference', 'exclusion', 'colordodge', 'colorburn', 'linearlight', 'vividlight', 'pin_light', 'hard_mix', 'lighten', 'darken', 'grain_extract', 'grain_merge', 'subtract']
-const PARTICLE_TYPES: ParticleType[] = ['explosion', 'embers', 'flow-field', 'boids', 'orbit']
 
 function pick<T>(arr: readonly T[]): T {
   return arr[Math.floor(Math.random() * arr.length)]

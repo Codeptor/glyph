@@ -28,7 +28,7 @@ function App() {
     <ToastProvider>
       <DBInit />
       <main className="flex h-full w-full">
-        {!leftSidebarHidden && <LeftSidebar />}
+        {!leftSidebarHidden && <LeftSidebar onExport={openExport} />}
         <AsciiCanvas />
         {!sidebarHidden && <RightSidebar />}
       </main>

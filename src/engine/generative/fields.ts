@@ -1,5 +1,5 @@
 import type { GenerativeField } from '@/types'
-import { simplex2, simplex3, fbm2 } from '@/engine/noise'
+import { simplex3, fbm2 } from '@/engine/noise'
 
 interface FieldResult {
   brightness: Float32Array
